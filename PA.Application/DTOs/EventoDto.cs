@@ -1,8 +1,5 @@
 namespace PA.Application.DTOs;
 
-/// <summary>
-/// DTO para representar evento
-/// </summary>
 public class EventoDto
 {
     public Guid Id { get; set; }

@@ -1,8 +1,5 @@
 namespace PA.Infrastructure.Auth;
 
-/// <summary>
-/// Configurações de autenticação Google OAuth
-/// </summary>
 public class GoogleAuthSettings
 {
     public string ClientId { get; set; } = string.Empty;

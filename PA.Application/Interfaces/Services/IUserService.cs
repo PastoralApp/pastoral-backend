@@ -2,9 +2,6 @@ using PA.Application.DTOs;
 
 namespace PA.Application.Interfaces.Services;
 
-/// <summary>
-/// Interface de serviço para User
-/// </summary>
 public interface IUserService
 {
     Task<UserDto?> GetByIdAsync(Guid id);

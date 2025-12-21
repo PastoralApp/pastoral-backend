@@ -1,8 +1,5 @@
 namespace PA.Infrastructure.Auth;
 
-/// <summary>
-/// Configurações JWT
-/// </summary>
 public class JwtSettings
 {
     public string Secret { get; set; } = string.Empty;

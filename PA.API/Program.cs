@@ -6,20 +6,15 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container
 builder.Services.AddControllers();
 
-// Swagger/OpenAPI - configuração simplificada
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Infrastructure (DbContext, Repositories, Services)
 builder.Services.AddInfrastructure(builder.Configuration);
 
-// AutoMapper
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
-// JWT Authentication
 var jwtSecret = builder.Configuration["JwtSettings:Secret"] ?? throw new InvalidOperationException("JWT Secret não configurado");
 var jwtIssuer = builder.Configuration["JwtSettings:Issuer"] ?? "PastoralApp";
 var jwtAudience = builder.Configuration["JwtSettings:Audience"] ?? "PastoralApp";
@@ -43,7 +38,6 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
@@ -57,7 +51,6 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
 app.UseSwagger();
 app.UseSwaggerUI(c => 
 {
@@ -65,9 +58,7 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = "swagger";
 });
 
-// app.UseHttpsRedirection(); // Desabilitado para desenvolvimento
 
-// Middleware de exceções
 app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseCors("AllowAngular");
@@ -77,7 +68,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Executar seed do banco de dados
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<PA.Infrastructure.Data.Context.PastoralAppDbContext>();

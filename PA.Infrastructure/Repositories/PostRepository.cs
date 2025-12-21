@@ -5,12 +5,11 @@ using PA.Infrastructure.Data.Context;
 
 namespace PA.Infrastructure.Repositories;
 
-/// <summary>
-/// Implementação do repositório de Post
-/// </summary>
 public class PostRepository : IPostRepository
 {
     private readonly PastoralAppDbContext _context;
+
+    public PastoralAppDbContext Context => _context;
 
     public PostRepository(PastoralAppDbContext context)
     {
@@ -97,6 +96,36 @@ public class PostRepository : IPostRepository
             .Include(p => p.Author)
             .OrderByDescending(p => p.CreatedAt)
             .Take(count)
+            .ToListAsync();
+    }
+
+    public async Task<PostSalvo?> GetPostSalvoAsync(Guid postId, Guid userId)
+    {
+        return await _context.Set<PostSalvo>()
+            .FirstOrDefaultAsync(ps => ps.PostId == postId && ps.UserId == userId);
+    }
+
+    public async Task AddPostSalvoAsync(PostSalvo postSalvo)
+    {
+        await _context.Set<PostSalvo>().AddAsync(postSalvo);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task RemovePostSalvoAsync(PostSalvo postSalvo)
+    {
+        _context.Set<PostSalvo>().Remove(postSalvo);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<IEnumerable<Post>> GetSavedPostsByUserAsync(Guid userId)
+    {
+        return await _context.Set<PostSalvo>()
+            .Include(ps => ps.Post).ThenInclude(p => p.Author)
+            .Include(ps => ps.Post).ThenInclude(p => p.Reactions)
+            .Include(ps => ps.Post).ThenInclude(p => p.Comments)
+            .Where(ps => ps.UserId == userId)
+            .OrderByDescending(ps => ps.DataSalvamento)
+            .Select(ps => ps.Post)
             .ToListAsync();
     }
 }

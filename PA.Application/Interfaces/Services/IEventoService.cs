@@ -2,9 +2,6 @@ using PA.Application.DTOs;
 
 namespace PA.Application.Interfaces.Services;
 
-/// <summary>
-/// Interface de serviço para Evento
-/// </summary>
 public interface IEventoService
 {
     Task<EventoDto?> GetByIdAsync(Guid id);

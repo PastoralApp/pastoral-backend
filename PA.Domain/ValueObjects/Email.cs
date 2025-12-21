@@ -2,9 +2,6 @@ using System.Text.RegularExpressions;
 
 namespace PA.Domain.ValueObjects;
 
-/// <summary>
-/// Value Object para representar Email
-/// </summary>
 public class Email
 {
     public string Value { get; private set; }

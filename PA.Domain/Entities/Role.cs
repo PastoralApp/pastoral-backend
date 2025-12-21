@@ -3,16 +3,11 @@ using PA.Domain.Enums;
 
 namespace PA.Domain.Entities;
 
-/// <summary>
-/// Representa uma Role (permissão) no sistema
-/// </summary>
 public class Role : Entity
 {
     public string Name { get; private set; }
     public RoleType Type { get; private set; }
     public string Description { get; private set; }
-
-    // Navigation
     public ICollection<User> Users { get; private set; }
 
     private Role() 

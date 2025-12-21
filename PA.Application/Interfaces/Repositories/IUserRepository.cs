@@ -3,9 +3,6 @@ using PA.Domain.Interfaces;
 
 namespace PA.Application.Interfaces.Repositories;
 
-/// <summary>
-/// Interface de repositório para User
-/// </summary>
 public interface IUserRepository : IRepository<User>
 {
     Task<User?> GetByEmailAsync(string email);

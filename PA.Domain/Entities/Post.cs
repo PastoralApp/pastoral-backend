@@ -3,9 +3,6 @@ using PA.Domain.Enums;
 
 namespace PA.Domain.Entities;
 
-/// <summary>
-/// Representa um Post (postagem) no feed
-/// </summary>
 public class Post : AggregateRoot
 {
     public string Content { get; private set; }
@@ -14,13 +11,17 @@ public class Post : AggregateRoot
     public bool IsPinned { get; private set; }
     public int LikesCount { get; private set; }
     public Guid AuthorId { get; private set; }
-
-    // Navigation
     public User Author { get; private set; } = null!;
+    public ICollection<PostReaction> Reactions { get; private set; }
+    public ICollection<PostComment> Comments { get; private set; }
+    public ICollection<PostShare> Shares { get; private set; }
 
     private Post() 
     { 
         Content = string.Empty;
+        Reactions = new List<PostReaction>();
+        Comments = new List<PostComment>();
+        Shares = new List<PostShare>();
     }
 
     public Post(string content, Guid authorId, PostType type = PostType.Comum, string? imageUrl = null)
@@ -31,6 +32,9 @@ public class Post : AggregateRoot
         ImageUrl = imageUrl;
         IsPinned = false;
         LikesCount = 0;
+        Reactions = new List<PostReaction>();
+        Comments = new List<PostComment>();
+        Shares = new List<PostShare>();
     }
 
     public void UpdateContent(string content, string? imageUrl = null)

@@ -10,22 +10,17 @@ using PA.Infrastructure.Repositories;
 
 namespace PA.Infrastructure;
 
-/// <summary>
-/// Configuração de injeção de dependências da camada Infrastructure
-/// </summary>
 public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        // Database
         services.AddDbContext<PastoralAppDbContext>(options =>
             options.UseNpgsql(
                 configuration.GetConnectionString("DefaultConnection"),
                 b => b.MigrationsAssembly(typeof(PastoralAppDbContext).Assembly.FullName)));
 
-        // Repositories
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IPostRepository, PostRepository>();
         services.AddScoped<IEventoRepository, EventoRepository>();
@@ -33,13 +28,12 @@ public static class DependencyInjection
         services.AddScoped<IHorarioMissaRepository, HorarioMissaRepository>();
         services.AddScoped<IGrupoRepository, GrupoRepository>();
         services.AddScoped<IPastoralRepository, PastoralRepository>();
+        services.AddScoped<INotificacaoRepository, NotificacaoRepository>();
 
-        // Services
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IEventoService, EventoService>();
         services.AddScoped<PostService>();
 
-        // Auth
         services.Configure<JwtSettings>(options =>
         {
             var section = configuration.GetSection("JwtSettings");

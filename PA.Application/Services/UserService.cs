@@ -7,9 +7,6 @@ using PA.Domain.ValueObjects;
 
 namespace PA.Application.Services;
 
-/// <summary>
-/// Serviço de aplicação para User
-/// </summary>
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;

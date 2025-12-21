@@ -1,8 +1,5 @@
 namespace PA.Application.DTOs;
 
-/// <summary>
-/// DTO para representar usuário
-/// </summary>
 public class UserDto
 {
     public Guid Id { get; set; }
@@ -26,13 +23,6 @@ public class CreateUserDto
     public string Password { get; set; } = string.Empty;
     public Guid RoleId { get; set; }
     public Guid? GrupoId { get; set; }
-}
-
-public class UpdateUserDto
-{
-    public string Name { get; set; } = string.Empty;
-    public DateTime? BirthDate { get; set; }
-    public string? PhotoUrl { get; set; }
 }
 
 public class TagDto

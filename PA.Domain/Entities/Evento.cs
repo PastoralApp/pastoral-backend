@@ -2,9 +2,6 @@ using PA.Domain.Common;
 
 namespace PA.Domain.Entities;
 
-/// <summary>
-/// Representa um Evento
-/// </summary>
 public class Evento : AggregateRoot
 {
     public string Title { get; private set; }
@@ -15,8 +12,6 @@ public class Evento : AggregateRoot
     public int MaxParticipants { get; private set; }
     public bool RequireInscription { get; private set; }
     public Guid CreatedByUserId { get; private set; }
-
-    // Navigation
     public User CreatedBy { get; private set; } = null!;
 
     private Evento() 

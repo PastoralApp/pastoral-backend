@@ -3,9 +3,6 @@ using System.Linq.Expressions;
 
 namespace PA.Domain.Interfaces;
 
-/// <summary>
-/// Interface genérica de repositório
-/// </summary>
 public interface IRepository<T> where T : Entity
 {
     Task<T?> GetByIdAsync(Guid id);

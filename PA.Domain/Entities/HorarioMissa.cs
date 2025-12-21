@@ -2,9 +2,6 @@ using PA.Domain.Common;
 
 namespace PA.Domain.Entities;
 
-/// <summary>
-/// Representa um horário de missa em uma igreja
-/// </summary>
 public class HorarioMissa : Entity
 {
     public Guid IgrejaId { get; private set; }
@@ -13,8 +10,6 @@ public class HorarioMissa : Entity
     public string? Celebrante { get; private set; }
     public string? Observacao { get; private set; }
     public bool IsAtivo { get; private set; }
-
-    // Relacionamentos
     public Igreja Igreja { get; private set; } = null!;
 
     private HorarioMissa() { }

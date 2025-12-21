@@ -2,16 +2,11 @@ using PA.Domain.Common;
 
 namespace PA.Domain.Entities;
 
-/// <summary>
-/// Representa uma Tag personalizada para membros
-/// </summary>
 public class Tag : Entity
 {
     public string Name { get; private set; }
     public string Color { get; private set; }
     public string Description { get; private set; }
-
-    // Navigation
     public ICollection<User> Users { get; private set; }
 
     private Tag() 

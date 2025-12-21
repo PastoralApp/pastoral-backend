@@ -4,9 +4,6 @@ using PA.Domain.ValueObjects;
 
 namespace PA.Infrastructure.Data.Context;
 
-/// <summary>
-/// DbContext principal da aplicação
-/// </summary>
 public class PastoralAppDbContext : DbContext
 {
     public PastoralAppDbContext(DbContextOptions<PastoralAppDbContext> options)
@@ -24,12 +21,17 @@ public class PastoralAppDbContext : DbContext
     public DbSet<Tag> Tags => Set<Tag>();
     public DbSet<Igreja> Igrejas => Set<Igreja>();
     public DbSet<HorarioMissa> HorariosMissas => Set<HorarioMissa>();
+    public DbSet<Notificacao> Notificacoes => Set<Notificacao>();
+    public DbSet<PostReaction> PostReactions => Set<PostReaction>();
+    public DbSet<PostComment> PostComments => Set<PostComment>();
+    public DbSet<PostShare> PostShares => Set<PostShare>();
+    public DbSet<PostSalvo> PostsSalvos => Set<PostSalvo>();
+    public DbSet<EventoSalvo> EventosSalvos => Set<EventoSalvo>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // User configuration
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -55,7 +57,6 @@ public class PastoralAppDbContext : DbContext
                 .UsingEntity(j => j.ToTable("UserTags"));
         });
 
-        // UserGrupo configuration (Many-to-Many)
         modelBuilder.Entity<UserGrupo>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -73,7 +74,6 @@ public class PastoralAppDbContext : DbContext
             entity.HasIndex(e => new { e.UserId, e.GrupoId }).IsUnique();
         });
 
-        // Role configuration
         modelBuilder.Entity<Role>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -82,7 +82,6 @@ public class PastoralAppDbContext : DbContext
             entity.Property(e => e.Type).IsRequired();
         });
 
-        // Pastoral configuration
         modelBuilder.Entity<Pastoral>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -107,7 +106,6 @@ public class PastoralAppDbContext : DbContext
             });
         });
 
-        // Grupo configuration
         modelBuilder.Entity<Grupo>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -135,7 +133,6 @@ public class PastoralAppDbContext : DbContext
             });
         });
 
-        // Post configuration
         modelBuilder.Entity<Post>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -152,7 +149,6 @@ public class PastoralAppDbContext : DbContext
             entity.HasIndex(e => e.IsPinned);
         });
 
-        // Evento configuration
         modelBuilder.Entity<Evento>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -169,7 +165,6 @@ public class PastoralAppDbContext : DbContext
             entity.HasIndex(e => e.EventDate);
         });
 
-        // Tag configuration
         modelBuilder.Entity<Tag>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -178,7 +173,6 @@ public class PastoralAppDbContext : DbContext
             entity.Property(e => e.Description).HasMaxLength(500);
         });
 
-        // Igreja configuration
         modelBuilder.Entity<Igreja>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -188,7 +182,6 @@ public class PastoralAppDbContext : DbContext
             entity.Property(e => e.ImagemUrl).HasMaxLength(500);
         });
 
-        // HorarioMissa configuration
         modelBuilder.Entity<HorarioMissa>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -203,6 +196,133 @@ public class PastoralAppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasIndex(e => new { e.IgrejaId, e.DiaSemana, e.Horario });
+        });
+
+        modelBuilder.Entity<Notificacao>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Titulo).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Mensagem).IsRequired().HasMaxLength(2000);
+            entity.Property(e => e.DataEnvio).IsRequired();
+            entity.Property(e => e.IsGeral).IsRequired();
+
+            entity.HasOne(e => e.Grupo)
+                .WithMany()
+                .HasForeignKey(e => e.GrupoId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired(false);
+
+            entity.HasOne(e => e.Remetente)
+                .WithMany()
+                .HasForeignKey(e => e.RemetenteId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => new { e.GrupoId, e.DataEnvio });
+        });
+
+        modelBuilder.Entity<NotificacaoLeitura>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.HasOne(e => e.Notificacao)
+                .WithMany(n => n.Leituras)
+                .HasForeignKey(e => e.NotificacaoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.NotificacaoId, e.UserId }).IsUnique();
+        });
+
+        modelBuilder.Entity<PostReaction>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.HasOne(e => e.Post)
+                .WithMany(p => p.Reactions)
+                .HasForeignKey(e => e.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.PostId, e.UserId }).IsUnique();
+        });
+
+        modelBuilder.Entity<PostComment>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Conteudo).IsRequired().HasMaxLength(1000);
+
+            entity.HasOne(e => e.Post)
+                .WithMany(p => p.Comments)
+                .HasForeignKey(e => e.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => new { e.PostId, e.DataComentario });
+        });
+
+        modelBuilder.Entity<PostShare>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.HasOne(e => e.Post)
+                .WithMany(p => p.Shares)
+                .HasForeignKey(e => e.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.PostId, e.UserId });
+        });
+
+        modelBuilder.Entity<PostSalvo>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.HasOne(e => e.Post)
+                .WithMany()
+                .HasForeignKey(e => e.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.UserId, e.PostId }).IsUnique();
+            entity.HasIndex(e => new { e.UserId, e.DataSalvamento });
+        });
+
+        modelBuilder.Entity<EventoSalvo>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.HasOne(e => e.Evento)
+                .WithMany()
+                .HasForeignKey(e => e.EventoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.UserId, e.EventoId }).IsUnique();
+            entity.HasIndex(e => new { e.UserId, e.DataSalvamento });
         });
     }
 }

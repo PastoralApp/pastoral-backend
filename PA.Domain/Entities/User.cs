@@ -3,9 +3,6 @@ using PA.Domain.ValueObjects;
 
 namespace PA.Domain.Entities;
 
-/// <summary>
-/// Representa um Usuário do sistema
-/// </summary>
 public class User : AggregateRoot
 {
     public string Name { get; private set; }
@@ -14,11 +11,7 @@ public class User : AggregateRoot
     public string? PhotoUrl { get; private set; }
     public DateTime? BirthDate { get; private set; }
     public bool IsActive { get; private set; }
-
-    // Relacionamentos
     public Guid RoleId { get; private set; }
-
-    // Navigation
     public Role Role { get; private set; } = null!;
     public ICollection<UserGrupo> UserGrupos { get; private set; }
     public ICollection<Tag> Tags { get; private set; }
@@ -89,12 +82,8 @@ public class User : AggregateRoot
         Tags.Remove(tag);
     }
 
-    /// <summary>
-    /// Adiciona usuário a um grupo validando limites (max 1 PA_Cima, 1 PA_Baixo, 1 PJ_Cima, 1 PJ_Baixo)
-    /// </summary>
     public void AdicionarAoGrupo(Guid grupoId, Grupo grupo)
     {
-        // Validação será feita no service
         var userGrupo = new UserGrupo(Id, grupoId);
         UserGrupos.Add(userGrupo);
         SetUpdatedAt();

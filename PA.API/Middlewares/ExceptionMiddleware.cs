@@ -3,9 +3,6 @@ using System.Text.Json;
 
 namespace PA.API.Middlewares;
 
-/// <summary>
-/// Middleware para tratamento global de exceções
-/// </summary>
 public class ExceptionMiddleware
 {
     private readonly RequestDelegate _next;

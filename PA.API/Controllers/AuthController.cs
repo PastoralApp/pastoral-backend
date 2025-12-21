@@ -5,9 +5,6 @@ using PA.Infrastructure.Auth;
 
 namespace PA.API.Controllers;
 
-/// <summary>
-/// Controller de autenticação
-/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
@@ -57,8 +54,6 @@ public class AuthController : ControllerBase
     {
         try
         {
-            // Role padrão para novos usuários (Usuario comum)
-            // TODO: Buscar RoleId do banco ou configurar
             var defaultRoleId = Guid.Parse("00000000-0000-0000-0000-000000000001"); 
 
             var (user, token) = await _googleAuthService.ProcessGoogleLoginAsync(dto.IdToken, defaultRoleId);
@@ -85,7 +80,6 @@ public class AuthController : ControllerBase
     [HttpGet("google-login")]
     public IActionResult GoogleLoginRedirect()
     {
-        // Redireciona para o fluxo OAuth do Google
         var clientId = _googleAuthService.GetClientId();
         var redirectUri = $"{Request.Scheme}://{Request.Host}/api/auth/google-callback";
         var scope = "openid profile email";
@@ -118,7 +112,6 @@ public class AuthController : ControllerBase
 
             var (user, token) = await _googleAuthService.ExchangeCodeForTokenAsync(code, redirectUri, defaultRoleId);
 
-            // Redireciona para o frontend com o token
             return Redirect($"http://localhost:4200/auth/google-success?token={token}");
         }
         catch (Exception ex)

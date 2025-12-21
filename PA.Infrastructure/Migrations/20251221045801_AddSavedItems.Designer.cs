@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PA.Infrastructure.Data.Context;
@@ -11,9 +12,11 @@ using PA.Infrastructure.Data.Context;
 namespace PA.Infrastructure.Migrations
 {
     [DbContext(typeof(PastoralAppDbContext))]
-    partial class PastoralAppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251221045801_AddSavedItems")]
+    partial class AddSavedItems
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

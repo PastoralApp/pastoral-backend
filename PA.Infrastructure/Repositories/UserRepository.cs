@@ -5,9 +5,6 @@ using PA.Infrastructure.Data.Context;
 
 namespace PA.Infrastructure.Repositories;
 
-/// <summary>
-/// Implementação do repositório de User
-/// </summary>
 public class UserRepository : IUserRepository
 {
     private readonly PastoralAppDbContext _context;

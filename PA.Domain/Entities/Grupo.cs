@@ -4,9 +4,6 @@ using PA.Domain.ValueObjects;
 
 namespace PA.Domain.Entities;
 
-/// <summary>
-/// Representa um Grupo dentro de uma Pastoral (Agis, Ajax, etc.)
-/// </summary>
 public class Grupo : AggregateRoot
 {
     public string Name { get; private set; }
@@ -16,8 +13,6 @@ public class Grupo : AggregateRoot
     public ColorTheme Theme { get; private set; }
     public string? LogoUrl { get; private set; }
     public bool IsActive { get; private set; }
-
-    // Navigation
     public Pastoral Pastoral { get; private set; } = null!;
     public ICollection<UserGrupo> UserGrupos { get; private set; }
 

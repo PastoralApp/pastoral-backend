@@ -2,9 +2,6 @@ using PA.Domain.Common;
 
 namespace PA.Domain.Entities;
 
-/// <summary>
-/// Representa uma igreja/comunidade
-/// </summary>
 public class Igreja : Entity
 {
     public string Nome { get; private set; }
@@ -12,8 +9,6 @@ public class Igreja : Entity
     public string? Telefone { get; private set; }
     public string? ImagemUrl { get; private set; }
     public bool IsAtiva { get; private set; }
-
-    // Relacionamentos
     public ICollection<HorarioMissa> HorariosMissas { get; private set; } = new List<HorarioMissa>();
 
     private Igreja() { Nome = string.Empty; }

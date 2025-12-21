@@ -1,8 +1,5 @@
 namespace PA.Domain.Common;
 
-/// <summary>
-/// Classe base para todas as entidades do domínio
-/// </summary>
 public abstract class Entity
 {
     public Guid Id { get; protected set; }

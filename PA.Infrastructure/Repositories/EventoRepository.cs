@@ -5,9 +5,6 @@ using PA.Infrastructure.Data.Context;
 
 namespace PA.Infrastructure.Repositories;
 
-/// <summary>
-/// Implementação do repositório de Evento
-/// </summary>
 public class EventoRepository : IEventoRepository
 {
     private readonly PastoralAppDbContext _context;
@@ -99,6 +96,34 @@ public class EventoRepository : IEventoRepository
             .Include(e => e.CreatedBy)
             .Where(e => e.CreatedByUserId == creatorId)
             .OrderBy(e => e.EventDate)
+            .ToListAsync();
+    }
+
+    public async Task<EventoSalvo?> GetEventoSalvoAsync(Guid eventoId, Guid userId)
+    {
+        return await _context.Set<EventoSalvo>()
+            .FirstOrDefaultAsync(es => es.EventoId == eventoId && es.UserId == userId);
+    }
+
+    public async Task AddEventoSalvoAsync(EventoSalvo eventoSalvo)
+    {
+        await _context.Set<EventoSalvo>().AddAsync(eventoSalvo);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task RemoveEventoSalvoAsync(EventoSalvo eventoSalvo)
+    {
+        _context.Set<EventoSalvo>().Remove(eventoSalvo);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<IEnumerable<Evento>> GetSavedEventosByUserAsync(Guid userId)
+    {
+        return await _context.Set<EventoSalvo>()
+            .Include(es => es.Evento).ThenInclude(e => e.CreatedBy)
+            .Where(es => es.UserId == userId)
+            .OrderByDescending(es => es.DataSalvamento)
+            .Select(es => es.Evento)
             .ToListAsync();
     }
 }

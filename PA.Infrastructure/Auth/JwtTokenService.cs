@@ -7,9 +7,6 @@ using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace PA.Infrastructure.Auth;
 
-/// <summary>
-/// Serviço para geração de tokens JWT
-/// </summary>
 public class JwtTokenService
 {
     private readonly JwtSettings _jwtSettings;

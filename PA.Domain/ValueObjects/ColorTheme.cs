@@ -2,9 +2,6 @@ using System.Text.RegularExpressions;
 
 namespace PA.Domain.ValueObjects;
 
-/// <summary>
-/// Value Object para representar tema de cores personalizado
-/// </summary>
 public class ColorTheme
 {
     public string PrimaryColor { get; private set; }

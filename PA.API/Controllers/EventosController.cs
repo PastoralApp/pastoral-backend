@@ -1,24 +1,27 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using PA.Application.DTOs;
 using PA.Application.Interfaces.Services;
+using PA.Application.Interfaces.Repositories;
+using PA.Domain.Entities;
 using System.Security.Claims;
 
 namespace PA.API.Controllers;
 
-/// <summary>
-/// Controller de eventos
-/// </summary>
+
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
 public class EventosController : ControllerBase
 {
     private readonly IEventoService _eventoService;
+    private readonly IEventoRepository _eventoRepository;
 
-    public EventosController(IEventoService eventoService)
+    public EventosController(IEventoService eventoService, IEventoRepository eventoRepository)
     {
         _eventoService = eventoService;
+        _eventoRepository = eventoRepository;
     }
 
     [HttpGet("upcoming")]
@@ -77,5 +80,37 @@ public class EventosController : ControllerBase
     {
         await _eventoService.DeleteAsync(id);
         return NoContent();
+    }
+
+    [HttpPost("{id:guid}/save")]
+    public async Task<IActionResult> SaveEvento(Guid id)
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var evento = await _eventoRepository.GetByIdAsync(id);
+        
+        if (evento == null)
+            return NotFound();
+
+        var saved = await _eventoRepository.GetEventoSalvoAsync(id, userId);
+
+        if (saved != null)
+        {
+            await _eventoRepository.RemoveEventoSalvoAsync(saved);
+            return Ok(new { saved = false });
+        }
+        else
+        {
+            var eventoSalvo = new EventoSalvo(id, userId);
+            await _eventoRepository.AddEventoSalvoAsync(eventoSalvo);
+            return Ok(new { saved = true });
+        }
+    }
+
+    [HttpGet("saved")]
+    public async Task<IActionResult> GetSavedEventos()
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var savedEventos = await _eventoRepository.GetSavedEventosByUserAsync(userId);
+        return Ok(savedEventos);
     }
 }

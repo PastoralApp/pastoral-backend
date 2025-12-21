@@ -1,11 +1,8 @@
 namespace PA.Domain.Enums;
 
-/// <summary>
-/// Tipo da pastoral
-/// </summary>
 public enum TipoPastoral
 {
-    PA = 1,  // Pastoral Adolescente
-    PJ = 2,  // Pastoral Jovem
+    PA = 1,
+    PJ = 2,
     Outras = 3
 }

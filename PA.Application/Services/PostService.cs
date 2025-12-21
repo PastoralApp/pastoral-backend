@@ -6,9 +6,6 @@ using PA.Domain.Enums;
 
 namespace PA.Application.Services;
 
-/// <summary>
-/// Serviço de aplicação para Post
-/// </summary>
 public class PostService
 {
     private readonly IPostRepository _postRepository;

@@ -3,12 +3,13 @@ using PA.Domain.Interfaces;
 
 namespace PA.Application.Interfaces.Repositories;
 
-/// <summary>
-/// Interface de repositório para Post
-/// </summary>
 public interface IPostRepository : IRepository<Post>
 {
     Task<IEnumerable<Post>> GetByAuthorIdAsync(Guid authorId);
     Task<IEnumerable<Post>> GetPinnedPostsAsync();
     Task<IEnumerable<Post>> GetRecentPostsAsync(int count = 50);
+    Task<PostSalvo?> GetPostSalvoAsync(Guid postId, Guid userId);
+    Task AddPostSalvoAsync(PostSalvo postSalvo);
+    Task RemovePostSalvoAsync(PostSalvo postSalvo);
+    Task<IEnumerable<Post>> GetSavedPostsByUserAsync(Guid userId);
 }

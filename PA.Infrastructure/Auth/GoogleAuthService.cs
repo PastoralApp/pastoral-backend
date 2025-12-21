@@ -8,9 +8,6 @@ using System.Text.Json.Serialization;
 
 namespace PA.Infrastructure.Auth;
 
-/// <summary>
-/// Serviço de autenticação com Google OAuth
-/// </summary>
 public class GoogleAuthService
 {
     private readonly GoogleAuthSettings _settings;
@@ -30,9 +27,6 @@ public class GoogleAuthService
         _httpClient = httpClient;
     }
 
-    /// <summary>
-    /// Valida o token ID do Google e retorna informações do usuário
-    /// </summary>
     public async Task<GoogleJsonWebSignature.Payload?> ValidateGoogleTokenAsync(string idToken)
     {
         try
@@ -51,9 +45,6 @@ public class GoogleAuthService
         }
     }
 
-    /// <summary>
-    /// Processa login com Google - cria usuário se não existir
-    /// </summary>
     public async Task<(User user, string token)> ProcessGoogleLoginAsync(string idToken, Guid defaultRoleId)
     {
         var payload = await ValidateGoogleTokenAsync(idToken);
@@ -61,12 +52,10 @@ public class GoogleAuthService
         if (payload == null)
             throw new UnauthorizedAccessException("Token do Google inválido");
 
-        // Buscar usuário existente
         var user = await _userRepository.GetByEmailAsync(payload.Email);
 
         if (user == null)
         {
-            // Criar novo usuário
             var email = new Email(payload.Email);
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()); // Senha aleatória
 
@@ -86,38 +75,26 @@ public class GoogleAuthService
         if (!user.IsActive)
             throw new UnauthorizedAccessException("Usuário inativo");
 
-        // Gerar token JWT
         var token = _jwtTokenService.GenerateToken(user);
 
         return (user, token);
     }
 
-    /// <summary>
-    /// Retorna o Client ID do Google para uso no frontend
-    /// </summary>
     public string GetClientId()
     {
         return _settings.ClientId;
     }
 
-    /// <summary>
-    /// Troca o código de autorização por tokens e informações do usuário
-    /// </summary>
     public async Task<(User user, string token)> ExchangeCodeForTokenAsync(string code, string redirectUri, Guid defaultRoleId)
     {
-        // Troca código por tokens
         var tokenResponse = await ExchangeAuthorizationCodeAsync(code, redirectUri);
         
         if (tokenResponse?.IdToken == null)
             throw new UnauthorizedAccessException("Falha ao obter token do Google");
 
-        // Processa o login usando o ID token
         return await ProcessGoogleLoginAsync(tokenResponse.IdToken, defaultRoleId);
     }
 
-    /// <summary>
-    /// Troca código de autorização por tokens de acesso
-    /// </summary>
     private async Task<GoogleTokenResponse?> ExchangeAuthorizationCodeAsync(string code, string redirectUri)
     {
         var tokenEndpoint = "https://oauth2.googleapis.com/token";
@@ -140,9 +117,6 @@ public class GoogleAuthService
     }
 }
 
-/// <summary>
-/// Resposta do endpoint de token do Google
-/// </summary>
 internal class GoogleTokenResponse
 {
     [JsonPropertyName("access_token")]

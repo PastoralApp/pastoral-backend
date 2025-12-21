@@ -4,9 +4,6 @@ using PA.Domain.ValueObjects;
 
 namespace PA.Domain.Entities;
 
-/// <summary>
-/// Representa uma Pastoral (PA ou PJ)
-/// </summary>
 public class Pastoral : AggregateRoot
 {
     public string Name { get; private set; }
@@ -17,8 +14,6 @@ public class Pastoral : AggregateRoot
     public string Description { get; private set; }
     public string? LogoUrl { get; private set; }
     public bool IsActive { get; private set; }
-
-    // Navigation
     public ICollection<Grupo> Grupos { get; private set; }
 
     private Pastoral() 

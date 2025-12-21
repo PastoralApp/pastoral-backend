@@ -6,9 +6,6 @@ using PA.Domain.Entities;
 
 namespace PA.Application.Services;
 
-/// <summary>
-/// Serviço de aplicação para Evento
-/// </summary>
 public class EventoService : IEventoService
 {
     private readonly IEventoRepository _eventoRepository;

@@ -1,8 +1,5 @@
 namespace PA.Application.DTOs;
 
-/// <summary>
-/// DTO para representar postagem
-/// </summary>
 public class PostDto
 {
     public Guid Id { get; set; }
