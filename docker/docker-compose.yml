@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pastoralapp-postgres
+    environment:
+      POSTGRES_DB: PastoralAppDb
+      POSTGRES_USER: pastoral_admin
+      POSTGRES_PASSWORD: Pastoral@2024!
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pastoral_admin -d PastoralAppDb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - pastoral-network
+
+networks:
+  pastoral-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local

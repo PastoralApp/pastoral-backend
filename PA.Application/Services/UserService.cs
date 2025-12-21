@@ -53,7 +53,7 @@ public class UserService : IUserService
         var email = new Email(dto.Email);
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
 
-        var user = new User(dto.Name, email, passwordHash, dto.RoleId, dto.GrupoId);
+        var user = new User(dto.Name, email, passwordHash, dto.RoleId);
         var created = await _userRepository.AddAsync(user);
 
         return _mapper.Map<UserDto>(created);

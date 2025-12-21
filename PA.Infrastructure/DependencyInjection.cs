@@ -21,7 +21,7 @@ public static class DependencyInjection
     {
         // Database
         services.AddDbContext<PastoralAppDbContext>(options =>
-            options.UseSqlServer(
+            options.UseNpgsql(
                 configuration.GetConnectionString("DefaultConnection"),
                 b => b.MigrationsAssembly(typeof(PastoralAppDbContext).Assembly.FullName)));
 
@@ -29,6 +29,10 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IPostRepository, PostRepository>();
         services.AddScoped<IEventoRepository, EventoRepository>();
+        services.AddScoped<IIgrejaRepository, IgrejaRepository>();
+        services.AddScoped<IHorarioMissaRepository, HorarioMissaRepository>();
+        services.AddScoped<IGrupoRepository, GrupoRepository>();
+        services.AddScoped<IPastoralRepository, PastoralRepository>();
 
         // Services
         services.AddScoped<IUserService, UserService>();
@@ -58,7 +62,7 @@ public static class DependencyInjection
             options.RedirectUris = redirectUris.ToArray();
         });
         services.AddScoped<JwtTokenService>();
-        services.AddScoped<GoogleAuthService>();
+        services.AddHttpClient<GoogleAuthService>();
 
         return services;
     }

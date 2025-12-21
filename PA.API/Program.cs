@@ -77,4 +77,11 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+// Executar seed do banco de dados
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<PA.Infrastructure.Data.Context.PastoralAppDbContext>();
+    await PA.Infrastructure.Data.Seeders.DatabaseSeeder.SeedAsync(context);
+}
+
 app.Run();

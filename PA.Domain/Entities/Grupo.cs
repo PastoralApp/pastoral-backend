@@ -1,4 +1,5 @@
 using PA.Domain.Common;
+using PA.Domain.Enums;
 using PA.Domain.ValueObjects;
 
 namespace PA.Domain.Entities;
@@ -9,37 +10,44 @@ namespace PA.Domain.Entities;
 public class Grupo : AggregateRoot
 {
     public string Name { get; private set; }
+    public string Sigla { get; private set; }
     public string Description { get; private set; }
     public Guid PastoralId { get; private set; }
     public ColorTheme Theme { get; private set; }
+    public string? LogoUrl { get; private set; }
     public bool IsActive { get; private set; }
 
     // Navigation
     public Pastoral Pastoral { get; private set; } = null!;
-    public ICollection<User> Members { get; private set; }
+    public ICollection<UserGrupo> UserGrupos { get; private set; }
 
     private Grupo() 
     { 
         Name = string.Empty;
+        Sigla = string.Empty;
         Description = string.Empty;
         Theme = new ColorTheme("#000000", "#FFFFFF");
-        Members = new List<User>();
+        UserGrupos = new List<UserGrupo>();
     }
 
-    public Grupo(string name, string description, Guid pastoralId, ColorTheme theme)
+    public Grupo(string name, string sigla, string description, Guid pastoralId, ColorTheme theme, string? logoUrl = null)
     {
         Name = name;
+        Sigla = sigla;
         Description = description;
         PastoralId = pastoralId;
         Theme = theme;
+        LogoUrl = logoUrl;
         IsActive = true;
-        Members = new List<User>();
+        UserGrupos = new List<UserGrupo>();
     }
 
-    public void UpdateInfo(string name, string description)
+    public void UpdateInfo(string name, string sigla, string description, string? logoUrl)
     {
         Name = name;
+        Sigla = sigla;
         Description = description;
+        LogoUrl = logoUrl;
         SetUpdatedAt();
     }
 

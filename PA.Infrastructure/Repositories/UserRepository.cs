@@ -21,7 +21,8 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users
             .Include(u => u.Role)
-            .Include(u => u.Grupo)
+            .Include(u => u.UserGrupos)
+                .ThenInclude(ug => ug.Grupo)
             .Include(u => u.Tags)
             .FirstOrDefaultAsync(u => u.Id == id);
     }
@@ -30,7 +31,8 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users
             .Include(u => u.Role)
-            .Include(u => u.Grupo)
+            .Include(u => u.UserGrupos)
+                .ThenInclude(ug => ug.Grupo)
             .Include(u => u.Tags)
             .ToListAsync();
     }
@@ -39,7 +41,8 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users
             .Include(u => u.Role)
-            .Include(u => u.Grupo)
+            .Include(u => u.UserGrupos)
+                .ThenInclude(ug => ug.Grupo)
             .Where(predicate)
             .ToListAsync();
     }
@@ -81,7 +84,8 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users
             .Include(u => u.Role)
-            .Include(u => u.Grupo)
+            .Include(u => u.UserGrupos)
+                .ThenInclude(ug => ug.Grupo)
             .FirstOrDefaultAsync(u => u.Email.Value == email);
     }
 
@@ -89,8 +93,9 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users
             .Include(u => u.Role)
-            .Include(u => u.Grupo)
-            .Where(u => u.GrupoId == grupoId)
+            .Include(u => u.UserGrupos)
+                .ThenInclude(ug => ug.Grupo)
+            .Where(u => u.UserGrupos.Any(ug => ug.GrupoId == grupoId && ug.IsAtivo))
             .ToListAsync();
     }
 
@@ -98,7 +103,8 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users
             .Include(u => u.Role)
-            .Include(u => u.Grupo)
+            .Include(u => u.UserGrupos)
+                .ThenInclude(ug => ug.Grupo)
             .Where(u => u.RoleId == roleId)
             .ToListAsync();
     }

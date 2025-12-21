@@ -18,9 +18,12 @@ public class PastoralAppDbContext : DbContext
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<Pastoral> Pastorais => Set<Pastoral>();
     public DbSet<Grupo> Grupos => Set<Grupo>();
+    public DbSet<UserGrupo> UserGrupos => Set<UserGrupo>();
     public DbSet<Post> Posts => Set<Post>();
     public DbSet<Evento> Eventos => Set<Evento>();
     public DbSet<Tag> Tags => Set<Tag>();
+    public DbSet<Igreja> Igrejas => Set<Igreja>();
+    public DbSet<HorarioMissa> HorariosMissas => Set<HorarioMissa>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -47,16 +50,27 @@ public class PastoralAppDbContext : DbContext
                 .HasForeignKey(e => e.RoleId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne(e => e.Grupo)
-                .WithMany(g => g.Members)
-                .HasForeignKey(e => e.GrupoId)
-                .OnDelete(DeleteBehavior.SetNull);
-
             entity.HasMany(e => e.Tags)
                 .WithMany(t => t.Users)
                 .UsingEntity(j => j.ToTable("UserTags"));
+        });
 
-            entity.HasIndex(e => e.Email.Value).IsUnique();
+        // UserGrupo configuration (Many-to-Many)
+        modelBuilder.Entity<UserGrupo>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.UserGrupos)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Grupo)
+                .WithMany(g => g.UserGrupos)
+                .HasForeignKey(e => e.GrupoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.UserId, e.GrupoId }).IsUnique();
         });
 
         // Role configuration
@@ -73,8 +87,11 @@ public class PastoralAppDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Sigla).IsRequired().HasMaxLength(20);
             entity.Property(e => e.Description).HasMaxLength(1000);
             entity.Property(e => e.Type).IsRequired();
+            entity.Property(e => e.TipoPastoral).IsRequired();
+            entity.Property(e => e.LogoUrl).HasMaxLength(500);
 
             entity.OwnsOne(e => e.Theme, theme =>
             {
@@ -95,7 +112,9 @@ public class PastoralAppDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Sigla).IsRequired().HasMaxLength(20);
             entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.LogoUrl).HasMaxLength(500);
 
             entity.HasOne(e => e.Pastoral)
                 .WithMany(p => p.Grupos)
@@ -157,6 +176,33 @@ public class PastoralAppDbContext : DbContext
             entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Color).IsRequired().HasMaxLength(7);
             entity.Property(e => e.Description).HasMaxLength(500);
+        });
+
+        // Igreja configuration
+        modelBuilder.Entity<Igreja>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Nome).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Endereco).HasMaxLength(500);
+            entity.Property(e => e.Telefone).HasMaxLength(20);
+            entity.Property(e => e.ImagemUrl).HasMaxLength(500);
+        });
+
+        // HorarioMissa configuration
+        modelBuilder.Entity<HorarioMissa>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.DiaSemana).IsRequired();
+            entity.Property(e => e.Horario).IsRequired();
+            entity.Property(e => e.Celebrante).HasMaxLength(200);
+            entity.Property(e => e.Observacao).HasMaxLength(500);
+
+            entity.HasOne(e => e.Igreja)
+                .WithMany(i => i.HorariosMissas)
+                .HasForeignKey(e => e.IgrejaId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.IgrejaId, e.DiaSemana, e.Horario });
         });
     }
 }

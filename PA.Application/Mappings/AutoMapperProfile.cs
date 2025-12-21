@@ -15,7 +15,6 @@ public class AutoMapperProfile : Profile
         CreateMap<User, UserDto>()
             .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email.Value))
             .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.Role.Name))
-            .ForMember(dest => dest.GrupoName, opt => opt.MapFrom(src => src.Grupo != null ? src.Grupo.Name : null))
             .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.Tags));
 
         CreateMap<Tag, TagDto>();
