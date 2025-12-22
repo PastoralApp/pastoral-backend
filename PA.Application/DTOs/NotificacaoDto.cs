@@ -18,10 +18,10 @@ public class NotificacaoDto
 }
 
 public record CreateNotificacaoDto(
-    string Titulo,
-    string Mensagem,
+    Guid UserId,
     Guid? GrupoId,
-    bool IsGeral
+    string Message,
+    string Type
 );
 
 public record UpdateNotificacaoDto(

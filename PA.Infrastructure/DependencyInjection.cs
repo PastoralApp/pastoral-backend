@@ -29,6 +29,25 @@ public static class DependencyInjection
         services.AddScoped<IGrupoRepository, GrupoRepository>();
         services.AddScoped<IPastoralRepository, PastoralRepository>();
         services.AddScoped<INotificacaoRepository, NotificacaoRepository>();
+// Services
+services.AddScoped<IPastoralService, PastoralService>();
+services.AddScoped<IGrupoService, GrupoService>();
+services.AddScoped<INotificacaoService, NotificacaoService>();
+services.AddScoped<IIgrejaService, IgrejaService>();
+services.AddScoped<IHorarioMissaService, HorarioMissaService>();
+services.AddScoped<IEventoService, EventoService>();
+services.AddScoped<IUserService, UserService>();
+
+// Repositories
+services.AddScoped<IPastoralRepository, PastoralRepository>();
+services.AddScoped<IGrupoRepository, GrupoRepository>();
+services.AddScoped<IUserRepository, UserRepository>();
+services.AddScoped<IEventoRepository, EventoRepository>();
+services.AddScoped<IIgrejaRepository, IgrejaRepository>();
+services.AddScoped<IHorarioMissaRepository, HorarioMissaRepository>();
+services.AddScoped<INotificacaoRepository, NotificacaoRepository>();
+services.AddScoped<IPostRepository, PostRepository>();
+
 
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IEventoService, EventoService>();

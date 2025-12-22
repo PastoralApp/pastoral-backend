@@ -37,6 +37,7 @@ public class GrupoDto
     public string PrimaryColor { get; set; } = string.Empty;
     public string SecondaryColor { get; set; } = string.Empty;
     public string? LogoUrl { get; set; }
+    public string? Icon { get; set; }
     public bool IsActive { get; set; }
     public int MembersCount { get; set; }
 }
@@ -52,6 +53,7 @@ public class PastoralDto
     public string PrimaryColor { get; set; } = string.Empty;
     public string SecondaryColor { get; set; } = string.Empty;
     public string? LogoUrl { get; set; }
+    public string? Icon { get; set; }
     public bool IsActive { get; set; }
     public List<GrupoDto> Grupos { get; set; } = new();
 }
@@ -90,6 +92,11 @@ public class UpdateUserDto
     public bool IsActive { get; set; }
 }
 
+public class UpdateUserRoleDto
+{
+    public Guid RoleId { get; set; }
+}
+
 public class AddUserToGrupoDto
 {
     public Guid UserId { get; set; }
@@ -104,7 +111,8 @@ public record CreatePastoralDto(
     string Description,
     string PrimaryColor,
     string SecondaryColor,
-    string? LogoUrl
+    string? LogoUrl,
+    string? Icon
 );
 
 public record CreateGrupoDto(
@@ -114,5 +122,6 @@ public record CreateGrupoDto(
     Guid PastoralId,
     string PrimaryColor,
     string SecondaryColor,
-    string? LogoUrl
+    string? LogoUrl,
+    string? Icon
 );

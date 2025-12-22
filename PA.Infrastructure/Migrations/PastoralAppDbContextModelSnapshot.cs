@@ -120,6 +120,9 @@ namespace PA.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<string>("Icon")
+                        .HasColumnType("text");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
@@ -317,6 +320,9 @@ namespace PA.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<string>("Icon")
+                        .HasColumnType("text");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
@@ -373,6 +379,9 @@ namespace PA.Infrastructure.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<int>("LikesCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TipoPastoral")
                         .HasColumnType("integer");
 
                     b.Property<int>("Type")
@@ -616,6 +625,9 @@ namespace PA.Infrastructure.Migrations
 
                     b.Property<Guid>("RoleId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Telefone")
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");

@@ -35,6 +35,18 @@ public class EventoService : IEventoService
         return _mapper.Map<IEnumerable<EventoDto>>(eventos);
     }
 
+    public async Task<IEnumerable<EventoDto>> GetByGrupoAsync(Guid grupoId)
+    {
+        var eventos = await _eventoRepository.GetByGrupoAsync(grupoId);
+        return _mapper.Map<IEnumerable<EventoDto>>(eventos);
+    }
+
+    public async Task<IEnumerable<EventoDto>> GetByPastoralAsync(Guid pastoralId)
+    {
+        var eventos = await _eventoRepository.GetByPastoralAsync(pastoralId);
+        return _mapper.Map<IEnumerable<EventoDto>>(eventos);
+    }
+
     public async Task<EventoDto> CreateAsync(CreateEventoDto dto, Guid userId)
     {
         var evento = new Evento(

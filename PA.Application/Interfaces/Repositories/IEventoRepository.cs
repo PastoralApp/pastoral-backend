@@ -8,6 +8,8 @@ public interface IEventoRepository : IRepository<Evento>
     Task<IEnumerable<Evento>> GetUpcomingEventosAsync();
     Task<IEnumerable<Evento>> GetPastEventosAsync();
     Task<IEnumerable<Evento>> GetByCreatorIdAsync(Guid creatorId);
+    Task<IEnumerable<Evento>> GetByGrupoAsync(Guid grupoId);
+    Task<IEnumerable<Evento>> GetByPastoralAsync(Guid pastoralId);
     Task<EventoSalvo?> GetEventoSalvoAsync(Guid eventoId, Guid userId);
     Task AddEventoSalvoAsync(EventoSalvo eventoSalvo);
     Task RemoveEventoSalvoAsync(EventoSalvo eventoSalvo);

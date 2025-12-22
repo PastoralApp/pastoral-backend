@@ -57,8 +57,7 @@ public class GoogleAuthService
         if (user == null)
         {
             var email = new Email(payload.Email);
-            var passwordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()); // Senha aleatória
-
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()); 
             user = new User(
                 name: payload.Name,
                 email: email,
@@ -80,6 +79,39 @@ public class GoogleAuthService
         return (user, token);
     }
 
+    public async Task<GoogleLoginResult> ProcessGoogleLoginWithCompletionAsync(string idToken)
+    {
+        var payload = await ValidateGoogleTokenAsync(idToken);
+
+        if (payload == null)
+            throw new UnauthorizedAccessException("Token do Google inválido");
+
+        var user = await _userRepository.GetByEmailAsync(payload.Email);
+        if (user != null)
+        {
+            if (!user.IsActive)
+                throw new UnauthorizedAccessException("Usuário inativo");
+
+            var token = _jwtTokenService.GenerateToken(user);
+            return GoogleLoginResult.Success(user, token);
+        }
+
+        // Usuário ainda não existe: exigir completar cadastro (ex: definir senha)
+        var regToken = _jwtTokenService.GenerateGoogleRegistrationToken(
+            email: payload.Email,
+            name: payload.Name ?? payload.Email,
+            photoUrl: payload.Picture,
+            googleSubject: payload.Subject
+        );
+
+        return GoogleLoginResult.NeedsCompletion(
+            registrationToken: regToken,
+            email: payload.Email,
+            name: payload.Name ?? payload.Email,
+            photoUrl: payload.Picture
+        );
+    }
+
     public string GetClientId()
     {
         return _settings.ClientId;
@@ -94,6 +126,16 @@ public class GoogleAuthService
 
         return await ProcessGoogleLoginAsync(tokenResponse.IdToken, defaultRoleId);
     }
+
+	public async Task<GoogleLoginResult> ExchangeCodeForLoginWithCompletionAsync(string code, string redirectUri)
+	{
+		var tokenResponse = await ExchangeAuthorizationCodeAsync(code, redirectUri);
+
+		if (string.IsNullOrWhiteSpace(tokenResponse?.IdToken))
+			throw new UnauthorizedAccessException("Falha ao obter token do Google");
+
+		return await ProcessGoogleLoginWithCompletionAsync(tokenResponse.IdToken);
+	}
 
     private async Task<GoogleTokenResponse?> ExchangeAuthorizationCodeAsync(string code, string redirectUri)
     {
@@ -115,6 +157,38 @@ public class GoogleAuthService
 
         return await response.Content.ReadFromJsonAsync<GoogleTokenResponse>();
     }
+}
+
+public sealed record GoogleLoginResult(
+    bool RequiresCompletion,
+    User? User,
+    string? Token,
+    string? RegistrationToken,
+    string? Email,
+    string? Name,
+    string? PhotoUrl)
+{
+    public static GoogleLoginResult Success(User user, string token) =>
+        new(
+            RequiresCompletion: false,
+            User: user,
+            Token: token,
+            RegistrationToken: null,
+            Email: null,
+            Name: null,
+            PhotoUrl: null
+        );
+
+    public static GoogleLoginResult NeedsCompletion(string registrationToken, string email, string name, string? photoUrl) =>
+        new(
+            RequiresCompletion: true,
+            User: null,
+            Token: null,
+            RegistrationToken: registrationToken,
+            Email: email,
+            Name: name,
+            PhotoUrl: photoUrl
+        );
 }
 
 internal class GoogleTokenResponse

@@ -4,5 +4,5 @@ public enum TipoPastoral
 {
     PA = 1,
     PJ = 2,
-    Outras = 3
+    Geral = 3
 }

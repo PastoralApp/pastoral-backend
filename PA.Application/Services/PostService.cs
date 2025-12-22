@@ -35,6 +35,18 @@ public class PostService
         return _mapper.Map<IEnumerable<PostDto>>(posts);
     }
 
+    public async Task<IEnumerable<PostDto>> GetByPastoralAsync(Guid pastoralId)
+    {
+        var posts = await _postRepository.GetByPastoralAsync(pastoralId);
+        return _mapper.Map<IEnumerable<PostDto>>(posts);
+    }
+
+    public async Task<IEnumerable<PostDto>> GetByGrupoAsync(Guid grupoId)
+    {
+        var posts = await _postRepository.GetByGrupoAsync(grupoId);
+        return _mapper.Map<IEnumerable<PostDto>>(posts);
+    }
+
     public async Task<PostDto> CreateAsync(CreatePostDto dto, Guid authorId)
     {
         var postType = Enum.Parse<PostType>(dto.Type);

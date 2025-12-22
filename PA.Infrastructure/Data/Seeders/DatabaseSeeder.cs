@@ -171,6 +171,94 @@ public static class DatabaseSeeder
         Console.WriteLine("✅ Usuário admin criado");
         Console.WriteLine($"   Email: admin@admin.com");
         Console.WriteLine($"   Senha: admin@admin");
+
+        // Seed Posts
+        var posts = new[]
+        {
+            new Post(
+                content: "🙏 Bem-vindos ao PastoralApp!\n\nEste é o novo aplicativo oficial para nossa comunidade pastoral. Aqui você poderá:\n\n• Acompanhar notícias e eventos\n• Participar de grupos de oração\n• Se inscrever em atividades\n• Conectar-se com outros membros\n\nQue Deus abençoe nossa jornada juntos!",
+                authorId: adminUser.Id,
+                type: PostType.Oficial,
+                imageUrl: null
+            ),
+            new Post(
+                content: "📢 Aviso Importante!\n\nLembramos a todos que nossa reunião mensal de coordenadores será neste sábado às 15h no salão paroquial.\n\nPauta:\n- Planejamento do próximo retiro\n- Organização de eventos de Natal\n- Novos projetos sociais\n\nContamos com a presença de todos!",
+                authorId: adminUser.Id,
+                type: PostType.Anuncio,
+                imageUrl: null
+            ),
+            new Post(
+                content: "✨ Reflexão do Dia\n\n\"Confie no Senhor de todo o seu coração e não se apoie em seu próprio entendimento; reconheça-O em todos os seus caminhos, e Ele endireitará as suas veredas.\"\n\nProvérbios 3:5-6\n\nQue possamos sempre confiar na providência divina em nossa caminhada!",
+                authorId: adminUser.Id,
+                type: PostType.Comum,
+                imageUrl: null
+            ),
+            new Post(
+                content: "🎉 Sucesso no nosso último encontro!\n\nAgradecemos a todos que participaram do encontro de jovens no último final de semana. Foram momentos de muita oração, louvor e comunhão.\n\nMais de 50 jovens participaram e renovaram seu compromisso com Cristo!\n\nAguardem o próximo encontro!",
+                authorId: adminUser.Id,
+                type: PostType.Comum,
+                imageUrl: null
+            )
+        };
+
+        await context.Posts.AddRangeAsync(posts);
+        await context.SaveChangesAsync();
+        Console.WriteLine("✅ Posts de boas-vindas criados");
+
+        // Seed Eventos
+        var eventos = new[]
+        {
+            new Evento(
+                title: "Retiro de Carnaval 2026",
+                description: "Retiro espiritual de Carnaval para jovens e adolescentes. Três dias de muita oração, louvor, pregações e comunhão fraterna. Vagas limitadas!\n\nO que levar:\n- Roupas confortáveis\n- Material de higiene pessoal\n- Bíblia e caderno\n- Disposição para encontrar Jesus!",
+                eventDate: new DateTime(2026, 2, 14, 8, 0, 0),
+                createdByUserId: adminUser.Id,
+                location: "Casa de Retiros São José - Campinas/SP",
+                maxParticipants: 80,
+                requireInscription: true
+            ),
+            new Evento(
+                title: "Encontro de Formação - Janeiro",
+                description: "Formação mensal para coordenadores e líderes de grupo. Tema: 'Liderança Servidora à luz do Evangelho'.\n\nPalestrante: Pe. João Carlos\n\nTodos os coordenadores devem participar.",
+                eventDate: new DateTime(2026, 1, 18, 15, 0, 0),
+                createdByUserId: adminUser.Id,
+                location: "Salão Paroquial - Igreja Matriz",
+                maxParticipants: 50,
+                requireInscription: false
+            ),
+            new Evento(
+                title: "Missa de Ação de Graças",
+                description: "Missa especial de ação de graças pelo ano que passou e pelos novos projetos que virão. Venha agradecer pelas bênçãos recebidas e pedir proteção para o novo ano!",
+                eventDate: new DateTime(2026, 1, 5, 19, 30, 0),
+                createdByUserId: adminUser.Id,
+                location: "Igreja Matriz Profeta Elias",
+                maxParticipants: 0,
+                requireInscription: false
+            ),
+            new Evento(
+                title: "Ação Social - Páscoa Solidária",
+                description: "Campanha de arrecadação de chocolates e doces para distribuir às famílias carentes da comunidade na Páscoa.\n\nPontos de coleta:\n- Secretaria paroquial\n- Após as missas de domingo\n\nAjude a levar alegria para quem precisa!",
+                eventDate: new DateTime(2026, 4, 5, 9, 0, 0),
+                createdByUserId: adminUser.Id,
+                location: "Centro Comunitário São Vicente",
+                maxParticipants: 30,
+                requireInscription: true
+            ),
+            new Evento(
+                title: "Acampamento de Férias",
+                description: "Acampamento de férias para adolescentes de 12 a 17 anos. Uma semana de atividades, esportes, oficinas e muito contato com a natureza!\n\nIncluso:\n- Hospedagem\n- Alimentação\n- Material para oficinas\n- Seguro",
+                eventDate: new DateTime(2026, 7, 12, 8, 0, 0),
+                createdByUserId: adminUser.Id,
+                location: "Sítio Santa Clara - Jundiaí/SP",
+                maxParticipants: 60,
+                requireInscription: true
+            )
+        };
+
+        await context.Eventos.AddRangeAsync(eventos);
+        await context.SaveChangesAsync();
+        Console.WriteLine("✅ Eventos de boas-vindas criados");
+
         Console.WriteLine("🎉 Seed concluído!");
     }
 }
