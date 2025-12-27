@@ -163,7 +163,8 @@ public class UsersController : ControllerBase
     {
         try
         {
-            await _grupoService.AddMemberAsync(grupoId, userId);
+            var dto = new AdicionarParticipanteGrupoDto { GrupoId = grupoId, UserId = userId };
+            await _grupoService.AdicionarParticipanteAsync(dto);
             return NoContent();
         }
         catch (KeyNotFoundException ex)
@@ -182,7 +183,8 @@ public class UsersController : ControllerBase
     {
         try
         {
-            await _grupoService.RemoveMemberAsync(grupoId, userId);
+            var dto = new RemoverParticipanteGrupoDto { GrupoId = grupoId, UserId = userId };
+            await _grupoService.RemoverParticipanteAsync(dto);
             return NoContent();
         }
         catch (KeyNotFoundException ex)
@@ -270,6 +272,38 @@ public class UsersController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
+    }
+
+  
+    [HttpGet("{id:guid}/profile")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetProfile(Guid id)
+    {
+        try
+        {
+            var profile = await _userService.GetProfileAsync(id);
+            return Ok(profile);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+    [HttpGet("select")]
+    [Authorize]
+    public async Task<IActionResult> GetUsersForSelect([FromQuery] Guid? grupoId = null, [FromQuery] Guid? pastoralId = null)
+    {
+        var users = await _userService.GetUsersForSelectAsync(grupoId, pastoralId);
+        return Ok(users);
+    }
+
+
+    [HttpPost("search")]
+    [Authorize]
+    public async Task<IActionResult> SearchUsers([FromBody] UserSearchDto searchDto)
+    {
+        var result = await _userService.SearchUsersAsync(searchDto);
+        return Ok(result);
     }
 }
 

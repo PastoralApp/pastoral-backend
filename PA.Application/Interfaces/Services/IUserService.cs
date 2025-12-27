@@ -11,4 +11,8 @@ public interface IUserService
     Task<UserDto> CreateAsync(CreateUserDto dto);
     Task UpdateAsync(Guid id, UpdateUserDto dto);
     Task DeleteAsync(Guid id);
+    
+    Task<UserProfileDto> GetProfileAsync(Guid userId);
+    Task<IEnumerable<UserSelectDto>> GetUsersForSelectAsync(Guid? grupoId = null, Guid? pastoralId = null);
+    Task<UserSearchResultDto> SearchUsersAsync(UserSearchDto searchDto);
 }

@@ -1,11 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PA.Application.DTOs;
-using PA.Application.Interfaces.Repositories;
 using PA.Application.Interfaces.Services;
-using PA.Domain.Entities;
-using GrupoEntity = PA.Domain.Entities.Grupo;
-using PA.Domain.ValueObjects;
 using PA.API.Filters;
 
 namespace PA.API.Controllers.Grupo;
@@ -14,92 +10,29 @@ namespace PA.API.Controllers.Grupo;
 [Route("api/[controller]")]
 public class GruposController : ControllerBase
 {
-    private readonly IGrupoRepository _grupoRepository;
-    private readonly IPastoralRepository _pastoralRepository;
-    private readonly IUserRepository _userRepository;
     private readonly IGrupoService _grupoService;
 
-    public GruposController(IGrupoRepository grupoRepository, IPastoralRepository pastoralRepository, IUserRepository userRepository, IGrupoService grupoService)
+    public GruposController(IGrupoService grupoService)
     {
-        _grupoRepository = grupoRepository;
-        _pastoralRepository = pastoralRepository;
-        _userRepository = userRepository;
         _grupoService = grupoService;
     }
 
     [HttpGet]
     [AllowAnonymous]
-    public async Task<IActionResult> GetAll([FromQuery] bool incluirInativos = false)
+    public async Task<IActionResult> GetAll()
     {
-        var grupos = await _grupoRepository.GetAllAsync(incluirInativos);
-        var dtos = grupos.Select(g => new GrupoDto
-        {
-            Id = g.Id,
-            Name = g.Name,
-            Sigla = g.Sigla,
-            Description = g.Description,
-            PastoralId = g.PastoralId,
-            PastoralName = g.Pastoral?.Name,
-            PastoralSigla = g.Pastoral?.Sigla,
-            PrimaryColor = g.Theme.PrimaryColor,
-            SecondaryColor = g.Theme.SecondaryColor,
-            LogoUrl = g.LogoUrl,
-            IsActive = g.IsActive,
-            MembersCount = g.UserGrupos?.Count(ug => ug.IsAtivo) ?? 0
-        });
-
-        return Ok(dtos);
+        var grupos = await _grupoService.GetAllAsync();
+        return Ok(grupos);
     }
 
     [HttpGet("{id}")]
     [AllowAnonymous]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var grupo = await _grupoRepository.GetByIdAsync(id);
+        var grupo = await _grupoService.GetByIdAsync(id);
         if (grupo == null)
             return NotFound();
-
-        var dto = new GrupoDto
-        {
-            Id = grupo.Id,
-            Name = grupo.Name,
-            Sigla = grupo.Sigla,
-            Description = grupo.Description,
-            PastoralId = grupo.PastoralId,
-            PastoralName = grupo.Pastoral?.Name,
-            PastoralSigla = grupo.Pastoral?.Sigla,
-            PrimaryColor = grupo.Theme.PrimaryColor,
-            SecondaryColor = grupo.Theme.SecondaryColor,
-            LogoUrl = grupo.LogoUrl,
-            IsActive = grupo.IsActive,
-            MembersCount = grupo.UserGrupos?.Count(ug => ug.IsAtivo) ?? 0
-        };
-
-        return Ok(dto);
-    }
-
-    [HttpGet("pastoral/{pastoralId}")]
-    [AllowAnonymous]
-    public async Task<IActionResult> GetByPastoral(Guid pastoralId, [FromQuery] bool incluirInativos = false)
-    {
-        var grupos = await _grupoRepository.GetByPastoralIdAsync(pastoralId, incluirInativos);
-        var dtos = grupos.Select(g => new GrupoDto
-        {
-            Id = g.Id,
-            Name = g.Name,
-            Sigla = g.Sigla,
-            Description = g.Description,
-            PastoralId = g.PastoralId,
-            PastoralName = g.Pastoral?.Name,
-            PastoralSigla = g.Pastoral?.Sigla,
-            PrimaryColor = g.Theme.PrimaryColor,
-            SecondaryColor = g.Theme.SecondaryColor,
-            LogoUrl = g.LogoUrl,
-            IsActive = g.IsActive,
-            MembersCount = g.UserGrupos?.Count(ug => ug.IsAtivo) ?? 0
-        });
-
-        return Ok(dtos);
+        return Ok(grupo);
     }
 
     [HttpPost]
@@ -107,45 +40,17 @@ public class GruposController : ControllerBase
     [ServiceFilter(typeof(AuthorizationFilter))]
     public async Task<IActionResult> Create([FromBody] CreateGrupoDto dto)
     {
-        var grupo = new GrupoEntity(
-            dto.Name,
-            dto.Sigla,
-            dto.Description,
-            dto.PastoralId,
-            new ColorTheme(dto.PrimaryColor, dto.SecondaryColor),
-            dto.LogoUrl
-        );
-
-        var created = await _grupoRepository.AddAsync(grupo);
-
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, new GrupoDto
-        {
-            Id = created.Id,
-            Name = created.Name,
-            Sigla = created.Sigla,
-            Description = created.Description,
-            PastoralId = created.PastoralId,
-            PrimaryColor = created.Theme.PrimaryColor,
-            SecondaryColor = created.Theme.SecondaryColor,
-            LogoUrl = created.LogoUrl,
-            IsActive = created.IsActive
-        });
+        var created = await _grupoService.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
     [HttpPut("{id}")]
     [Authorize(Roles = "Administrador")]
     [ServiceFilter(typeof(AuthorizationFilter))]
-    public async Task<IActionResult> Update(Guid id, [FromBody] CreateGrupoDto dto)
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateGrupoDto dto)
     {
-        var grupo = await _grupoRepository.GetByIdAsync(id);
-        if (grupo == null)
-            return NotFound();
-
-        grupo.UpdateInfo(dto.Name, dto.Sigla, dto.Description, dto.LogoUrl);
-        grupo.UpdateTheme(new ColorTheme(dto.PrimaryColor, dto.SecondaryColor));
-        await _grupoRepository.UpdateAsync(grupo);
-
-        return NoContent();
+        var updated = await _grupoService.UpdateAsync(id, dto);
+        return Ok(updated);
     }
 
     [HttpDelete("{id}")]
@@ -153,181 +58,41 @@ public class GruposController : ControllerBase
     [ServiceFilter(typeof(AuthorizationFilter))]
     public async Task<IActionResult> Delete(Guid id)
     {
-        await _grupoRepository.DeleteAsync(id);
+        await _grupoService.DeleteAsync(id);
         return NoContent();
     }
 
-    [HttpGet("{id}/membros")]
-    [Authorize]
-    public async Task<IActionResult> GetMembros(Guid id)
+    [HttpPost("{grupoId}/participantes")]
+    [Authorize(Roles = "Administrador,Coordenador Geral")]
+    public async Task<IActionResult> AdicionarParticipante(Guid grupoId, [FromBody] AdicionarParticipanteGrupoDto dto)
     {
-        var users = await _userRepository.GetByGrupoIdAsync(id);
-        return Ok(users);
+        dto.GrupoId = grupoId;
+        var success = await _grupoService.AdicionarParticipanteAsync(dto);
+        return success ? Ok() : BadRequest("Não foi possível adicionar participante");
     }
 
-    [HttpPost("{grupoId}/membros/{userId}")]
-    [Authorize(Roles = "Administrador,Coordenador Geral,Coordenador de Grupo")]
-    public async Task<IActionResult> AddMembro(Guid grupoId, Guid userId)
+    [HttpDelete("{grupoId}/participantes/{userId}")]
+    [Authorize(Roles = "Administrador,Coordenador Geral")]
+    public async Task<IActionResult> RemoverParticipante(Guid grupoId, Guid userId)
     {
-        try
-        {
-            await _grupoService.AddMemberAsync(grupoId, userId);
-            return NoContent();
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        var dto = new RemoverParticipanteGrupoDto { GrupoId = grupoId, UserId = userId };
+        var success = await _grupoService.RemoverParticipanteAsync(dto);
+        return success ? Ok() : BadRequest("Não foi possível remover participante");
     }
 
-    [HttpDelete("{grupoId}/membros/{userId}")]
-    [Authorize(Roles = "Administrador,Coordenador Geral,Coordenador de Grupo")]
-    public async Task<IActionResult> RemoveMembro(Guid grupoId, Guid userId)
+    [HttpGet("{id}/medalhas")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetMedalhas(Guid id)
     {
-        var user = await _userRepository.GetByIdAsync(userId);
-        if (user == null)
-            return NotFound();
-
-        user.RemoverDoGrupo(grupoId);
-        await _userRepository.UpdateAsync(user);
-
-        return NoContent();
+        var medalhas = await _grupoService.GetMedalhasAsync(id);
+        return Ok(medalhas);
     }
 
-    [HttpPost("{grupoId}/entrar")]
-    [Authorize]
-    public async Task<IActionResult> EntrarNoGrupo(Guid grupoId)
+    [HttpGet("{id}/trofeus")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetTrofeus(Guid id)
     {
-        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-            return Unauthorized();
-
-        try
-        {
-            var grupo = await _grupoRepository.GetByIdAsync(grupoId);
-            if (grupo == null)
-                return NotFound(new { message = "Grupo não encontrado" });
-
-            if (!grupo.IsActive)
-                return BadRequest(new { message = "Este grupo está inativo" });
-
-            await _grupoService.AddMemberAsync(grupoId, userId);
-            
-            return Ok(new { message = "Você entrou no grupo com sucesso!" });
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-    }
-
-    [HttpPost("{grupoId}/sair")]
-    [Authorize]
-    public async Task<IActionResult> SairDoGrupo(Guid grupoId)
-    {
-        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-            return Unauthorized();
-
-        var user = await _userRepository.GetByIdAsync(userId);
-        if (user == null)
-            return NotFound("Usuário não encontrado");
-
-        var userGrupo = user.UserGrupos.FirstOrDefault(ug => ug.GrupoId == grupoId && ug.IsAtivo);
-        if (userGrupo == null)
-            return BadRequest(new { message = "Você não faz parte deste grupo" });
-
-        user.RemoverDoGrupo(grupoId);
-        await _userRepository.UpdateAsync(user);
-
-        return Ok(new { message = "Você saiu do grupo com sucesso!" });
-    }
-
-    [HttpPost("{grupoId}/silenciar-notificacoes")]
-    [Authorize]
-    public async Task<IActionResult> SilenciarNotificacoes(Guid grupoId)
-    {
-        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-            return Unauthorized();
-
-        var user = await _userRepository.GetByIdAsync(userId);
-        if (user == null)
-            return NotFound();
-
-        var userGrupo = user.UserGrupos.FirstOrDefault(ug => ug.GrupoId == grupoId && ug.IsAtivo);
-        if (userGrupo == null)
-            return NotFound("Usuário não faz parte deste grupo");
-
-        userGrupo.SilenciarNotificacoesDoGrupo();
-        await _userRepository.UpdateAsync(user);
-
-        return NoContent();
-    }
-
-    [HttpPost("{grupoId}/ativar-notificacoes")]
-    [Authorize]
-    public async Task<IActionResult> AtivarNotificacoes(Guid grupoId)
-    {
-        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-            return Unauthorized();
-
-        var user = await _userRepository.GetByIdAsync(userId);
-        if (user == null)
-            return NotFound();
-
-        var userGrupo = user.UserGrupos.FirstOrDefault(ug => ug.GrupoId == grupoId && ug.IsAtivo);
-        if (userGrupo == null)
-            return NotFound("Usuário não faz parte deste grupo");
-
-        userGrupo.AtivarNotificacoesDoGrupo();
-        await _userRepository.UpdateAsync(user);
-
-        return NoContent();
-    }
-
-    [HttpPatch("{id}/desativar")]
-    [Authorize(Roles = "Administrador")]
-    [ServiceFilter(typeof(AuthorizationFilter))]
-    public async Task<IActionResult> Desativar(Guid id)
-    {
-        var grupo = await _grupoRepository.GetByIdAsync(id);
-        if (grupo == null)
-            return NotFound();
-
-        grupo.Deactivate();
-        await _grupoRepository.UpdateAsync(grupo);
-        return NoContent();
-    }
-
-    [HttpPatch("{id}/ativar")]
-    [Authorize(Roles = "Administrador")]
-    [ServiceFilter(typeof(AuthorizationFilter))]
-    public async Task<IActionResult> Ativar(Guid id)
-    {
-        var grupo = await _grupoRepository.GetByIdAsync(id);
-        if (grupo == null)
-            return NotFound();
-
-        grupo.Activate();
-        await _grupoRepository.UpdateAsync(grupo);
-        return NoContent();
+        var trofeus = await _grupoService.GetTrofeusAsync(id);
+        return Ok(trofeus);
     }
 }

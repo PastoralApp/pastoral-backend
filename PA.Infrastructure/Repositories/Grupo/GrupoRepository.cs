@@ -98,4 +98,32 @@ public class GrupoRepository : IGrupoRepository
             await _context.SaveChangesAsync();
         }
     }
+
+    public async Task<Grupo?> GetByIdWithParticipantesAsync(Guid id)
+    {
+        return await _context.Grupos
+            .Include(g => g.Pastoral)
+            .Include(g => g.Igreja)
+            .Include(g => g.UserGrupos.Where(ug => ug.IsAtivo))
+                .ThenInclude(ug => ug.User)
+            .FirstOrDefaultAsync(g => g.Id == id);
+    }
+
+    public async Task<Grupo?> GetByIdWithConquistasAsync(Guid id)
+    {
+        return await _context.Grupos
+            .Include(g => g.Pastoral)
+            .Include(g => g.Igreja)
+            .FirstOrDefaultAsync(g => g.Id == id);
+    }
+
+    public async Task<IEnumerable<Grupo>> GetAtivosByPastoralIdAsync(Guid pastoralId)
+    {
+        return await _context.Grupos
+            .Include(g => g.Pastoral)
+            .Include(g => g.Igreja)
+            .Where(g => g.PastoralId == pastoralId && g.IsActive)
+            .OrderBy(g => g.Name)
+            .ToListAsync();
+    }
 }

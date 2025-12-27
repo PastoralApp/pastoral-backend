@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PA.Application.Interfaces.Repositories;
+using PA.Domain.Interfaces;
 using PA.Application.Interfaces.Services;
 using PA.Application.Services;
 using PA.Infrastructure.Auth;
@@ -27,33 +28,32 @@ public static class DependencyInjection
         services.AddScoped<IEventoRepository, EventoRepository>();
         services.AddScoped<IIgrejaRepository, IgrejaRepository>();
         services.AddScoped<IHorarioMissaRepository, HorarioMissaRepository>();
-        services.AddScoped<IGrupoRepository, GrupoRepository>();
         services.AddScoped<IPastoralRepository, PastoralRepository>();
         services.AddScoped<INotificacaoRepository, NotificacaoRepository>();
         services.AddScoped<ITagRepository, TagRepository>();
         services.AddScoped<IEmailVerificationRepository, EmailVerificationRepository>();
         services.AddScoped<IUserGrupoRepository, UserGrupoRepository>();
-   
-
-services.AddScoped<IPastoralRepository, PastoralRepository>();
-services.AddScoped<IGrupoRepository, GrupoRepository>();
-services.AddScoped<IUserRepository, UserRepository>();
-services.AddScoped<IEventoRepository, EventoRepository>();
-services.AddScoped<IIgrejaRepository, IgrejaRepository>();
-services.AddScoped<IHorarioMissaRepository, HorarioMissaRepository>();
-services.AddScoped<INotificacaoRepository, NotificacaoRepository>();
-services.AddScoped<IPostRepository, PostRepository>();
+        services.AddScoped<PA.Domain.Interfaces.IMedalhaRepository, MedalhaRepository>();
+        services.AddScoped<PA.Domain.Interfaces.ITrofeuRepository, TrofeuRepository>();
+        services.AddScoped<PA.Application.Interfaces.Repositories.IGrupoRepository, GrupoRepository>();
+        services.AddScoped<PA.Application.Interfaces.Repositories.IOlimpiadasRepository, OlimpiadasRepository>();
+        services.AddScoped<PA.Application.Interfaces.Repositories.IGuiaRepository, GuiaRepository>();
 
 
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IEventoService, EventoService>();
-        services.AddScoped<IGrupoService, GrupoService>();
+        services.AddScoped<IGrupoService, GrupoJogosService>(); 
         services.AddScoped<IPastoralService, PastoralService>();
         services.AddScoped<IIgrejaService, IgrejaService>();
         services.AddScoped<IHorarioMissaService, HorarioMissaService>();
         services.AddScoped<INotificacaoService, NotificacaoService>();
         services.AddScoped<IPostService, PostService>();
         services.AddScoped<IEmailService, SmtpEmailService>();
+        
+        services.AddScoped<IMedalhaService, MedalhaService>();
+        services.AddScoped<ITrofeuService, TrofeuService>();
+        services.AddScoped<IOlimpiadasService, OlimpiadasService>();
+        services.AddScoped<IGuiaService, GuiaService>();
         
         services.AddSingleton<IEmailQueueService, EmailQueueService>();
         services.AddHostedService<EmailQueueBackgroundService>();

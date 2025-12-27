@@ -29,6 +29,28 @@ public class PastoralAppDbContext : DbContext
     public DbSet<EventoSalvo> EventosSalvos => Set<EventoSalvo>();
     public DbSet<EventoParticipante> EventoParticipantes => Set<EventoParticipante>();
     public DbSet<EmailVerification> EmailVerifications => Set<EmailVerification>();
+    public DbSet<Jogo> Jogos => Set<Jogo>();
+    public DbSet<Olimpiadas> Olimpiadas => Set<Olimpiadas>();
+    public DbSet<Guia> Guias => Set<Guia>();
+    public DbSet<Modalidade> Modalidades => Set<Modalidade>();
+    public DbSet<Prova> Provas => Set<Prova>();
+    public DbSet<Medalha> Medalhas => Set<Medalha>();
+    public DbSet<Trofeu> Trofeus => Set<Trofeu>();
+    public DbSet<Partida> Partidas => Set<Partida>();
+    public DbSet<GrupoJogo> GruposJogos => Set<GrupoJogo>();
+    public DbSet<GrupoModalidade> GruposModalidades => Set<GrupoModalidade>();
+    public DbSet<ParticipanteGrupo> ParticipantesGrupos => Set<ParticipanteGrupo>();
+    public DbSet<ParticipanteModalidade> ParticipantesModalidades => Set<ParticipanteModalidade>();
+    public DbSet<MedalhaParticipante> MedalhasParticipantes => Set<MedalhaParticipante>();
+    public DbSet<PontuacaoJogo> PontuacoesJogos => Set<PontuacaoJogo>();
+    public DbSet<PontuacaoProva> PontuacoesProvas => Set<PontuacaoProva>();
+    public DbSet<HorarioJogo> HorariosJogos => Set<HorarioJogo>();
+    public DbSet<HistoricoJogo> HistoricosJogos => Set<HistoricoJogo>();
+    public DbSet<ChaveOlimpiadas> ChavesOlimpiadas => Set<ChaveOlimpiadas>();
+    public DbSet<ChaveModalidade> ChavesModalidades => Set<ChaveModalidade>();
+    public DbSet<GrupoChave> GruposChaves => Set<GrupoChave>();
+    public DbSet<RankingOlimpiadas> RankingsOlimpiadas => Set<RankingOlimpiadas>();
+    public DbSet<RankingGuia> RankingsGuias => Set<RankingGuia>();
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
