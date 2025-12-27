@@ -1,4 +1,5 @@
 using PA.Domain.Common;
+using PA.Domain.Enums;
 using PA.Domain.ValueObjects;
 
 namespace PA.Domain.Entities;
@@ -12,8 +13,12 @@ public class User : AggregateRoot
     public DateTime? BirthDate { get; private set; }
     public string? Telefone { get; private set; }
     public bool IsActive { get; private set; }
+    public bool IsEmailVerified { get; private set; }
     public Guid RoleId { get; private set; }
     public Role Role { get; private set; } = null!;
+    public Guid? IgrejaId { get; private set; }
+    public Igreja? Igreja { get; private set; }
+    public TipoPastoral? TipoPastoral { get; private set; }
     public ICollection<UserGrupo> UserGrupos { get; private set; }
     public ICollection<Tag> Tags { get; private set; }
     public ICollection<Post> Posts { get; private set; }
@@ -70,8 +75,20 @@ public class User : AggregateRoot
         SetUpdatedAt();
     }
 
+    public void UpdateIgreja(Guid? igrejaId)
+    {
+        IgrejaId = igrejaId;
+        SetUpdatedAt();
+    }
+
     public void Activate() => IsActive = true;
     public void Deactivate() => IsActive = false;
+
+    public void VerifyEmail()
+    {
+        IsEmailVerified = true;
+        SetUpdatedAt();
+    }
 
     public void AddTag(Tag tag)
     {
@@ -86,6 +103,20 @@ public class User : AggregateRoot
 
     public void AdicionarAoGrupo(Guid grupoId, Grupo grupo)
     {
+        var gruposAtivos = UserGrupos.Where(ug => ug.IsAtivo).ToList();
+        if (gruposAtivos.Count >= 4)
+            throw new InvalidOperationException("Usuário já atingiu o limite de 4 grupos");
+
+        var existingRelation = UserGrupos.FirstOrDefault(ug => ug.GrupoId == grupoId);
+        if (existingRelation != null)
+        {
+            if (!existingRelation.IsAtivo)
+            {
+                existingRelation.Ativar();
+            }
+            return;
+        }
+
         var userGrupo = new UserGrupo(Id, grupoId);
         UserGrupos.Add(userGrupo);
         SetUpdatedAt();

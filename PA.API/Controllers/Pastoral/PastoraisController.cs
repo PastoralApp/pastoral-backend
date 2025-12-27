@@ -92,7 +92,7 @@ public class PastoraisController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Administrador")]
     [ServiceFilter(typeof(AuthorizationFilter))]
     public async Task<IActionResult> Create([FromBody] CreatePastoralDto dto)
     {
@@ -124,7 +124,7 @@ public class PastoraisController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Administrador")]
     [ServiceFilter(typeof(AuthorizationFilter))]
     public async Task<IActionResult> Update(Guid id, [FromBody] CreatePastoralDto dto)
     {
@@ -140,7 +140,7 @@ public class PastoraisController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Administrador")]
     [ServiceFilter(typeof(AuthorizationFilter))]
     public async Task<IActionResult> Delete(Guid id)
     {
@@ -149,7 +149,7 @@ public class PastoraisController : ControllerBase
     }
 
     [HttpPatch("{id}/desativar")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Administrador")]
     [ServiceFilter(typeof(AuthorizationFilter))]
     public async Task<IActionResult> Desativar(Guid id)
     {
@@ -163,7 +163,7 @@ public class PastoraisController : ControllerBase
     }
 
     [HttpPatch("{id}/ativar")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Administrador")]
     [ServiceFilter(typeof(AuthorizationFilter))]
     public async Task<IActionResult> Ativar(Guid id)
     {
@@ -175,4 +175,20 @@ public class PastoraisController : ControllerBase
         await _pastoralRepository.UpdateAsync(pastoral);
         return NoContent();
     }
+
+    [HttpPatch("{id}/cor")]
+    [Authorize(Roles = "Coordenador Geral,Administrador")]
+    public async Task<IActionResult> UpdateColor(Guid id, [FromBody] UpdateCorDto dto)
+    {
+        var pastoral = await _pastoralRepository.GetByIdAsync(id);
+        if (pastoral == null)
+            return NotFound();
+
+        var newTheme = new ColorTheme(dto.Cor, pastoral.Theme.SecondaryColor);
+        pastoral.UpdateTheme(newTheme);
+        await _pastoralRepository.UpdateAsync(pastoral);
+        return NoContent();
+    }
 }
+
+public record UpdateCorDto(string Cor);

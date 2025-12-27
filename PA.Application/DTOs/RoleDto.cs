@@ -7,3 +7,10 @@ public class RoleDto
     public int Type { get; set; }
     public string? Description { get; set; }
 }
+
+public class CreateRoleDto
+{
+    public string Name { get; set; } = string.Empty;
+    public int Type { get; set; }
+    public string? Description { get; set; }
+}

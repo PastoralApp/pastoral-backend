@@ -17,17 +17,19 @@ public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
     private readonly IUserRepository _userRepository;
+    private readonly IGrupoService _grupoService;
     private readonly PastoralAppDbContext _context;
 
-    public UsersController(IUserService userService, IUserRepository userRepository, PastoralAppDbContext context)
+    public UsersController(IUserService userService, IUserRepository userRepository, IGrupoService grupoService, PastoralAppDbContext context)
     {
         _userService = userService;
         _userRepository = userRepository;
+        _grupoService = grupoService;
         _context = context;
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin,CoordenadorGeral")]
+    [Authorize(Roles = "Administrador,Coordenador Geral")]
     public async Task<IActionResult> GetAll()
     {
         var users = await _userService.GetAllAsync();
@@ -67,7 +69,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,CoordenadorGeral")]
+    [Authorize(Roles = "Administrador,Coordenador Geral")]
     public async Task<IActionResult> Create([FromBody] CreateUserDto dto)
     {
         try
@@ -82,7 +84,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "Admin,CoordenadorGeral")]
+    [Authorize(Roles = "Administrador,Coordenador Geral")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateUserDto dto)
     {
         try
@@ -128,7 +130,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/desativar")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Desativar(Guid id)
     {
         var user = await _userRepository.GetByIdAsync(id);
@@ -142,7 +144,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/ativar")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Ativar(Guid id)
     {
         var user = await _userRepository.GetByIdAsync(id);
@@ -156,23 +158,17 @@ public class UsersController : ControllerBase
     }
 
     [HttpPost("{userId:guid}/grupos/{grupoId:guid}")]
-    [Authorize(Roles = "Admin,CoordenadorGeral")]
+    [Authorize(Roles = "Administrador,Coordenador Geral")]
     public async Task<IActionResult> AddToGrupo(Guid userId, Guid grupoId)
     {
         try
         {
-            var user = await _userRepository.GetByIdAsync(userId);
-            if (user == null)
-                return NotFound("Usuário não encontrado");
-
-            var gruposAtivos = user.UserGrupos.Where(ug => ug.IsAtivo).ToList();
-            if (gruposAtivos.Count >= 4)
-                return BadRequest(new { message = "Usuário já atingiu o limite de 4 grupos" });
-
-            user.AdicionarAoGrupo(grupoId, null!); // Grupo será carregado pelo repository
-            await _userRepository.UpdateAsync(user);
-
+            await _grupoService.AddMemberAsync(grupoId, userId);
             return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -181,29 +177,50 @@ public class UsersController : ControllerBase
     }
 
     [HttpDelete("{userId:guid}/grupos/{grupoId:guid}")]
-    [Authorize(Roles = "Admin,CoordenadorGeral")]
+    [Authorize(Roles = "Administrador,Coordenador Geral")]
     public async Task<IActionResult> RemoveFromGrupo(Guid userId, Guid grupoId)
     {
-        var user = await _userRepository.GetByIdAsync(userId);
-        if (user == null)
-            return NotFound();
-
-        user.RemoverDoGrupo(grupoId);
-        await _userRepository.UpdateAsync(user);
-
-        return NoContent();
+        try
+        {
+            await _grupoService.RemoveMemberAsync(grupoId, userId);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        await _userService.DeleteAsync(id);
-        return NoContent();
+        try
+        {
+            var user = await _userRepository.GetByIdAsync(id);
+            if (user == null)
+                return NotFound(new { message = "Usuário não encontrado" });
+
+            foreach (var userGrupo in user.UserGrupos.ToList())
+            {
+                _context.Set<PA.Domain.Entities.UserGrupo>().Remove(userGrupo);
+            }
+
+            await _userService.DeleteAsync(id);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = "Erro ao excluir usuário. Verifique se não há dependências." });
+        }
     }
 
     [HttpPatch("{id:guid}/role")]
-    [Authorize(Roles = "Admin,CoordenadorGeral")]
+    [Authorize(Roles = "Administrador,Coordenador Geral")]
     public async Task<IActionResult> UpdateRole(Guid id, [FromBody] PA.Application.DTOs.UpdateUserRoleDto dto)
     {
         var user = await _userRepository.GetByIdAsync(id);
@@ -218,6 +235,41 @@ public class UsersController : ControllerBase
         await _userRepository.UpdateAsync(user);
 
         return NoContent();
+    }
+
+    [HttpPut("admin/{id:guid}")]
+    [Authorize(Roles = "Administrador")]
+    public async Task<IActionResult> UpdateAdmin(Guid id, [FromBody] UpdateUserAdminDto dto)
+    {
+        var user = await _userRepository.GetByIdAsync(id);
+        if (user == null)
+            return NotFound();
+
+        var roleExists = await _context.Roles.AnyAsync(r => r.Id == dto.RoleId);
+        if (!roleExists)
+            return BadRequest(new { message = "Role não encontrada" });
+
+        user.UpdateProfile(dto.Name, dto.BirthDate, null);
+        user.UpdateRole(dto.RoleId);
+        
+        await _userRepository.UpdateAsync(user);
+
+        return NoContent();
+    }
+
+    [HttpPost("admin")]
+    [Authorize(Roles = "Administrador")]
+    public async Task<IActionResult> CreateAdmin([FromBody] CreateUserDto dto)
+    {
+        try
+        {
+            var userDto = await _userService.CreateAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = userDto.Id }, userDto);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }
 

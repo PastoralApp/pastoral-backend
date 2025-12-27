@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using PA.Application.DTOs;
-using PA.Application.Services;
-using PA.Application.Interfaces.Repositories;
-using PA.Domain.Entities;
+using PA.Application.Interfaces.Services;
+using PA.Domain.Enums;
 using System.Security.Claims;
 
 namespace PA.API.Controllers.Post;
@@ -14,26 +12,28 @@ namespace PA.API.Controllers.Post;
 [Authorize]
 public class PostsController : ControllerBase
 {
-    private readonly PostService _postService;
-    private readonly IPostRepository _postRepository;
+    private readonly IPostService _postService;
 
-    public PostsController(PostService postService, IPostRepository postRepository)
+    public PostsController(IPostService postService)
     {
         _postService = postService;
-        _postRepository = postRepository;
     }
+
+    #region Queries
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var posts = await _postService.GetRecentAsync(100);
+        var userId = GetCurrentUserId();
+        var posts = await _postService.GetRecentAsync(100, userId);
         return Ok(posts);
     }
 
     [HttpGet("recent")]
     public async Task<IActionResult> GetRecent([FromQuery] int count = 50)
     {
-        var posts = await _postService.GetRecentAsync(count);
+        var userId = GetCurrentUserId();
+        var posts = await _postService.GetRecentAsync(count, userId);
         return Ok(posts);
     }
 
@@ -51,6 +51,16 @@ public class PostsController : ControllerBase
         return Ok(posts);
     }
 
+    [HttpGet("tipo-pastoral/{tipoPastoral}")]
+    public async Task<IActionResult> GetByTipoPastoral(string tipoPastoral)
+    {
+        if (!Enum.TryParse<TipoPastoral>(tipoPastoral, true, out var tipo))
+            return BadRequest(new { message = "Tipo de pastoral inválido. Use: PA, PJ ou Geral" });
+
+        var posts = await _postService.GetByTipoPastoralAsync(tipo);
+        return Ok(posts);
+    }
+
     [HttpGet("grupo/{grupoId:guid}")]
     public async Task<IActionResult> GetByGrupo(Guid grupoId)
     {
@@ -58,10 +68,18 @@ public class PostsController : ControllerBase
         return Ok(posts);
     }
 
+    [HttpGet("user/{userId:guid}")]
+    public async Task<IActionResult> GetByUser(Guid userId)
+    {
+        var posts = await _postService.GetByUserAsync(userId);
+        return Ok(posts);
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var post = await _postService.GetByIdAsync(id);
+        var userId = GetCurrentUserId();
+        var post = await _postService.GetByIdAsync(id, userId);
         
         if (post == null)
             return NotFound();
@@ -69,10 +87,50 @@ public class PostsController : ControllerBase
         return Ok(post);
     }
 
+    [HttpGet("{id:guid}/detail")]
+    public async Task<IActionResult> GetPostDetail(Guid id)
+    {
+        var userId = GetCurrentUserId();
+        var post = await _postService.GetPostDetailAsync(id, userId);
+        
+        if (post == null)
+            return NotFound();
+
+        return Ok(post);
+    }
+
+    [HttpGet("saved")]
+    public async Task<IActionResult> GetSavedPosts()
+    {
+        var userId = GetCurrentUserId();
+        var savedPosts = await _postService.GetSavedPostsAsync(userId);
+        return Ok(savedPosts);
+    }
+
+    [HttpGet("anuncios")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetAnuncios([FromQuery] int count = 10)
+    {
+        var posts = await _postService.GetByTypeAsync(PostType.Anuncio, count);
+        return Ok(posts);
+    }
+
+    [HttpGet("avisos")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetAvisos([FromQuery] int count = 10)
+    {
+        var posts = await _postService.GetByTypeAsync(PostType.Aviso, count);
+        return Ok(posts);
+    }
+
+    #endregion
+
+    #region Commands
+
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreatePostDto dto)
     {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var userId = GetCurrentUserId();
         var post = await _postService.CreateAsync(dto, userId);
         
         return CreatedAtAction(nameof(GetById), new { id = post.Id }, post);
@@ -100,28 +158,57 @@ public class PostsController : ControllerBase
     }
 
     [HttpPost("{id:guid}/pin")]
-    [Authorize(Roles = "CoordenadorGeral,Admin")]
-    public async Task<IActionResult> Pin(Guid id)
+    [Authorize(Roles = "Coordenador de Grupo,Coordenador Geral,Administrador")]
+    public async Task<IActionResult> Pin(Guid id, [FromBody] PinPostRequest request)
     {
         try
         {
-            await _postService.PinAsync(id);
+            var userId = GetCurrentUserId();
+            await _postService.PinAsync(id, userId, request.PinType ?? "Geral");
             return NoContent();
         }
         catch (KeyNotFoundException)
         {
             return NotFound();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
         }
     }
 
     [HttpPost("{id:guid}/unpin")]
-    [Authorize(Roles = "CoordenadorGeral,Admin")]
+    [Authorize(Roles = "Coordenador de Grupo,Coordenador Geral,Administrador")]
     public async Task<IActionResult> Unpin(Guid id)
     {
         try
         {
-            await _postService.UnpinAsync(id);
+            var userId = GetCurrentUserId();
+            await _postService.UnpinAsync(id, userId);
             return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
+        }
+    }
+
+    #endregion
+
+    #region Reactions
+
+    [HttpPost("{id:guid}/react")]
+    public async Task<IActionResult> React(Guid id)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var result = await _postService.ToggleReactionAsync(id, userId);
+            return Ok(new { reacted = result.reacted, likesCount = result.likesCount });
         }
         catch (KeyNotFoundException)
         {
@@ -129,127 +216,150 @@ public class PostsController : ControllerBase
         }
     }
 
-    [HttpPost("{id:guid}/react")]
-    public async Task<IActionResult> React(Guid id)
+    #endregion
+
+    #region Comments
+
+    [HttpGet("{id:guid}/comments")]
+    public async Task<IActionResult> GetComments(Guid id)
     {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var post = await _postRepository.GetByIdAsync(id);
-        
-        if (post == null)
+        try
+        {
+            var comments = await _postService.GetCommentsAsync(id);
+            return Ok(comments);
+        }
+        catch (KeyNotFoundException)
+        {
             return NotFound();
-
-        var existingReaction = post.Reactions.FirstOrDefault(r => r.UserId == userId);
-        
-        if (existingReaction != null)
-        {
-            post.Reactions.Remove(existingReaction);
-            post.DecrementLikes();
         }
-        else
-        {
-            post.Reactions.Add(new PostReaction(id, userId));
-            post.IncrementLikes();
-        }
-
-        await _postRepository.UpdateAsync(post);
-        return Ok(new { reacted = existingReaction == null, likesCount = post.LikesCount });
     }
 
     [HttpPost("{id:guid}/comments")]
     public async Task<IActionResult> AddComment(Guid id, [FromBody] CreateCommentDto dto)
     {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var post = await _postRepository.GetByIdAsync(id);
-        
-        if (post == null)
+        try
+        {
+            var userId = GetCurrentUserId();
+            var comment = await _postService.AddCommentAsync(id, userId, dto.Conteudo);
+            return Ok(comment);
+        }
+        catch (KeyNotFoundException)
+        {
             return NotFound();
-
-        var comment = new PostComment(id, userId, dto.Conteudo);
-        post.Comments.Add(comment);
-        await _postRepository.UpdateAsync(post);
-
-        return Ok(comment);
-    }
-
-    [HttpGet("{id:guid}/comments")]
-    public async Task<IActionResult> GetComments(Guid id)
-    {
-        var post = await _postRepository.GetByIdAsync(id);
-        
-        if (post == null)
-            return NotFound();
-
-        var comments = post.Comments.Where(c => c.IsAtivo).OrderBy(c => c.DataComentario);
-        return Ok(comments);
-    }
-
-    [HttpPost("{id:guid}/share")]
-    public async Task<IActionResult> Share(Guid id)
-    {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var post = await _postRepository.GetByIdAsync(id);
-        
-        if (post == null)
-            return NotFound();
-
-        var share = new PostShare(id, userId);
-        post.Shares.Add(share);
-        await _postRepository.UpdateAsync(post);
-
-        return Ok(new { sharesCount = post.Shares.Count });
+        }
     }
 
     [HttpDelete("comments/{commentId:guid}")]
     public async Task<IActionResult> DeleteComment(Guid commentId)
     {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var isAdmin = User.IsInRole("Admin") || User.IsInRole("CoordenadorGeral");
-
-        var comment = await _postRepository.FindAsync(p => p.Comments.Any(c => c.Id == commentId));
-        var commentToDelete = comment.FirstOrDefault()?.Comments.FirstOrDefault(c => c.Id == commentId);
-
-        if (commentToDelete == null)
+        try
+        {
+            var userId = GetCurrentUserId();
+            await _postService.DeleteCommentAsync(commentId, userId);
+            return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
             return NotFound();
-
-        if (commentToDelete.UserId != userId && !isAdmin)
+        }
+        catch (UnauthorizedAccessException)
+        {
             return Forbid();
-
-        commentToDelete.Desativar();
-        await _postRepository.UpdateAsync(comment.First());
-
-        return NoContent();
+        }
     }
 
+    #endregion
+
+    #region Share & Save
+
+    [HttpPost("{id:guid}/share")]
+    public async Task<IActionResult> Share(Guid id)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var sharesCount = await _postService.ShareAsync(id, userId);
+            return Ok(new { sharesCount });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
 
     [HttpPost("{id:guid}/save")]
     public async Task<IActionResult> SavePost(Guid id)
     {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var post = await _postRepository.GetByIdAsync(id);
-        
-        if (post == null)
+        try
+        {
+            var userId = GetCurrentUserId();
+            var saved = await _postService.ToggleSavePostAsync(id, userId);
+            return Ok(new { saved });
+        }
+        catch (KeyNotFoundException)
+        {
             return NotFound();
-
-        var saved = await _postRepository.GetPostSalvoAsync(id, userId);
-
-        if (saved != null)
-        {
-            await _postRepository.RemovePostSalvoAsync(saved);
-            return Ok(new { saved = false });
-        }
-        else
-        {
-            var postSalvo = new PostSalvo(id, userId);
-            await _postRepository.AddPostSalvoAsync(postSalvo);
-            return Ok(new { saved = true });
         }
     }
 
-    [HttpGet("saved")]
-    public async Task<IActionResult> GetSavedPosts()
+    #endregion
+
+    #region Admin
+
+    [HttpGet("admin/all")]
+    [Authorize(Roles = "Administrador")]
+    public async Task<IActionResult> GetAllPostsAdmin()
     {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var savedPosts = await _postRepository.GetSavedPostsByUserAsync(userId);
-        return Ok(savedPosts);
+        var posts = await _postService.GetRecentAsync(1000);
+        return Ok(posts);
     }
+
+    [HttpGet("admin/user/{userId:guid}")]
+    [Authorize(Roles = "Administrador,Coordenador Geral")]
+    public async Task<IActionResult> GetPostsByUserAdmin(Guid userId)
+    {
+        var posts = await _postService.GetByUserAsync(userId);
+        return Ok(posts);
+    }
+
+    [HttpDelete("admin/{id:guid}")]
+    [Authorize(Roles = "Administrador")]
+    public async Task<IActionResult> AdminDeletePost(Guid id)
+    {
+        await _postService.DeleteAsync(id);
+        return NoContent();
+    }
+
+    [HttpPut("admin/{id:guid}/type")]
+    [Authorize(Roles = "Administrador,Coordenador Geral")]
+    public async Task<IActionResult> AdminChangePostType(Guid id, [FromBody] ChangePostTypeDto dto)
+    {
+        try
+        {
+            var postType = Enum.Parse<PostType>(dto.Type);
+            await _postService.ChangeTypeAsync(id, postType);
+            return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (ArgumentException)
+        {
+            return BadRequest(new { message = "Tipo de post inválido" });
+        }
+    }
+
+    #endregion
+
+    #region Private Methods
+
+    private Guid GetCurrentUserId()
+    {
+        return Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    }
+
+    #endregion
 }
+
+public record PinPostRequest(string? PinType);

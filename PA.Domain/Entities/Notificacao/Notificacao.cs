@@ -7,11 +7,14 @@ public class Notificacao : AggregateRoot
     public string Titulo { get; private set; }
     public string Mensagem { get; private set; }
     public Guid? GrupoId { get; private set; }
+    public Guid? DestinatarioId { get; private set; }
     public Guid RemetenteId { get; private set; }
     public DateTime DataEnvio { get; private set; }
     public bool IsAtiva { get; private set; }
     public bool IsGeral { get; private set; }
+    public bool SendEmail { get; private set; }
     public Grupo? Grupo { get; private set; }
+    public User? Destinatario { get; private set; }
     public User Remetente { get; private set; } = null!;
     public ICollection<NotificacaoLeitura> Leituras { get; private set; }
 
@@ -22,15 +25,17 @@ public class Notificacao : AggregateRoot
         Leituras = new List<NotificacaoLeitura>();
     }
 
-    public Notificacao(string titulo, string mensagem, Guid remetenteId, Guid? grupoId = null, bool isGeral = false)
+    public Notificacao(string titulo, string mensagem, Guid remetenteId, Guid? grupoId = null, Guid? destinatarioId = null, bool isGeral = false, bool sendEmail = false)
     {
         Titulo = titulo;
         Mensagem = mensagem;
         GrupoId = grupoId;
+        DestinatarioId = destinatarioId;
         RemetenteId = remetenteId;
         DataEnvio = DateTime.UtcNow;
         IsAtiva = true;
         IsGeral = isGeral;
+        SendEmail = sendEmail;
         Leituras = new List<NotificacaoLeitura>();
     }
 
@@ -43,8 +48,10 @@ public class Notificacao : AggregateRoot
 
     public void MarkAsRead(Guid userId)
     {
-        // Adicionado para compatibilidade - não faz nada aqui
-        // A leitura é registrada na coleção Leituras
+        if (!Leituras.Any(l => l.UserId == userId))
+        {
+            Leituras.Add(new NotificacaoLeitura(Id, userId));
+        }
     }
 
     public void Activate() => IsAtiva = true;
