@@ -28,7 +28,7 @@ public class JwtTokenService
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.Name),
                 new Claim(ClaimTypes.Email, user.Email.Value),
-                new Claim(ClaimTypes.Role, ((int)user.Role.Type).ToString()),
+                new Claim(ClaimTypes.Role, user.Role.Name),
                 new Claim("RoleId", user.RoleId.ToString()),
                 new Claim("RoleName", user.Role.Name)
             }),

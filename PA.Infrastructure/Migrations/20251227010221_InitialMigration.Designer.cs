@@ -12,8 +12,8 @@ using PA.Infrastructure.Data.Context;
 namespace PA.Infrastructure.Migrations
 {
     [DbContext(typeof(PastoralAppDbContext))]
-    [Migration("20251221045016_AddPostInteractions")]
-    partial class AddPostInteractions
+    [Migration("20251227010221_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,17 +25,68 @@ namespace PA.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("PA.Domain.Entities.EmailVerification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<bool>("IsUsed")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Purpose")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("Email", "Code");
+
+                    b.ToTable("EmailVerifications");
+                });
+
             modelBuilder.Entity("PA.Domain.Entities.Evento", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("BannerUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Cor")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("CreatedByUserId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DataLimiteInscricao")
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -43,9 +94,19 @@ namespace PA.Infrastructure.Migrations
                         .HasColumnType("character varying(5000)");
 
                     b.Property<DateTime>("EventDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("EventEndDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("GrupoId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("ImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("LinkInscricao")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
@@ -56,16 +117,26 @@ namespace PA.Infrastructure.Migrations
                     b.Property<int>("MaxParticipants")
                         .HasColumnType("integer");
 
+                    b.Property<decimal?>("Preco")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
                     b.Property<bool>("RequireInscription")
                         .HasColumnType("boolean");
+
+                    b.Property<Guid?>("ResponsavelUserId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
 
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -73,7 +144,80 @@ namespace PA.Infrastructure.Migrations
 
                     b.HasIndex("EventDate");
 
+                    b.HasIndex("GrupoId");
+
+                    b.HasIndex("ResponsavelUserId");
+
+                    b.HasIndex("Type");
+
                     b.ToTable("Eventos");
+                });
+
+            modelBuilder.Entity("PA.Domain.Entities.EventoParticipante", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Confirmado")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("DataConfirmacao")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid>("EventoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("EventoId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("EventoParticipantes");
+                });
+
+            modelBuilder.Entity("PA.Domain.Entities.EventoSalvo", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("DataSalvamento")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid>("EventoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventoId");
+
+                    b.HasIndex("UserId", "DataSalvamento");
+
+                    b.HasIndex("UserId", "EventoId")
+                        .IsUnique();
+
+                    b.ToTable("EventosSalvos");
                 });
 
             modelBuilder.Entity("PA.Domain.Entities.Grupo", b =>
@@ -83,12 +227,18 @@ namespace PA.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Icon")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("IgrejaId")
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
@@ -111,9 +261,11 @@ namespace PA.Infrastructure.Migrations
                         .HasColumnType("character varying(20)");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("IgrejaId");
 
                     b.HasIndex("PastoralId");
 
@@ -131,7 +283,7 @@ namespace PA.Infrastructure.Migrations
                         .HasColumnType("character varying(200)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("DiaSemana")
                         .HasColumnType("integer");
@@ -150,7 +302,7 @@ namespace PA.Infrastructure.Migrations
                         .HasColumnType("character varying(500)");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -166,7 +318,7 @@ namespace PA.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Endereco")
                         .HasMaxLength(500)
@@ -189,7 +341,7 @@ namespace PA.Infrastructure.Migrations
                         .HasColumnType("character varying(20)");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -203,10 +355,13 @@ namespace PA.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("DataEnvio")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("DestinatarioId")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid?>("GrupoId")
                         .HasColumnType("uuid");
@@ -225,15 +380,20 @@ namespace PA.Infrastructure.Migrations
                     b.Property<Guid>("RemetenteId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("SendEmail")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Titulo")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DestinatarioId");
 
                     b.HasIndex("RemetenteId");
 
@@ -249,16 +409,16 @@ namespace PA.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("DataLeitura")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("NotificacaoId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -280,12 +440,15 @@ namespace PA.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Icon")
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
@@ -311,7 +474,7 @@ namespace PA.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -327,13 +490,16 @@ namespace PA.Infrastructure.Migrations
                     b.Property<Guid>("AuthorId")
                         .HasColumnType("uuid");
 
+                    b.Property<int>("CommentsCount")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasMaxLength(5000)
                         .HasColumnType("character varying(5000)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("ImageUrl")
                         .HasMaxLength(500)
@@ -345,11 +511,21 @@ namespace PA.Infrastructure.Migrations
                     b.Property<int>("LikesCount")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("PastoralId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PinType")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("TipoPastoral")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Type")
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -374,10 +550,10 @@ namespace PA.Infrastructure.Migrations
                         .HasColumnType("character varying(1000)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("DataComentario")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<bool>("IsAtivo")
                         .HasColumnType("boolean");
@@ -386,7 +562,7 @@ namespace PA.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -407,16 +583,16 @@ namespace PA.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("DataReacao")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("PostId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -431,6 +607,39 @@ namespace PA.Infrastructure.Migrations
                     b.ToTable("PostReactions");
                 });
 
+            modelBuilder.Entity("PA.Domain.Entities.PostSalvo", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("DataSalvamento")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostId");
+
+                    b.HasIndex("UserId", "DataSalvamento");
+
+                    b.HasIndex("UserId", "PostId")
+                        .IsUnique();
+
+                    b.ToTable("PostsSalvos");
+                });
+
             modelBuilder.Entity("PA.Domain.Entities.PostShare", b =>
                 {
                     b.Property<Guid>("Id")
@@ -438,16 +647,16 @@ namespace PA.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("DataCompartilhamento")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("PostId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -468,7 +677,7 @@ namespace PA.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -484,7 +693,7 @@ namespace PA.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -503,7 +712,7 @@ namespace PA.Infrastructure.Migrations
                         .HasColumnType("character varying(7)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -516,7 +725,7 @@ namespace PA.Infrastructure.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -530,12 +739,18 @@ namespace PA.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("BirthDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("IgrejaId")
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsEmailVerified")
                         .HasColumnType("boolean");
 
                     b.Property<string>("Name")
@@ -554,10 +769,18 @@ namespace PA.Infrastructure.Migrations
                     b.Property<Guid>("RoleId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Telefone")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("TipoPastoral")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("IgrejaId");
 
                     b.HasIndex("RoleId");
 
@@ -571,10 +794,10 @@ namespace PA.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("DataEntrada")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("GrupoId")
                         .HasColumnType("uuid");
@@ -586,7 +809,7 @@ namespace PA.Infrastructure.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -624,11 +847,66 @@ namespace PA.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("PA.Domain.Entities.Grupo", "Grupo")
+                        .WithMany()
+                        .HasForeignKey("GrupoId");
+
+                    b.HasOne("PA.Domain.Entities.User", "ResponsavelUser")
+                        .WithMany()
+                        .HasForeignKey("ResponsavelUserId");
+
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("Grupo");
+
+                    b.Navigation("ResponsavelUser");
+                });
+
+            modelBuilder.Entity("PA.Domain.Entities.EventoParticipante", b =>
+                {
+                    b.HasOne("PA.Domain.Entities.Evento", "Evento")
+                        .WithMany("Participantes")
+                        .HasForeignKey("EventoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PA.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Evento");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PA.Domain.Entities.EventoSalvo", b =>
+                {
+                    b.HasOne("PA.Domain.Entities.Evento", "Evento")
+                        .WithMany()
+                        .HasForeignKey("EventoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PA.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Evento");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("PA.Domain.Entities.Grupo", b =>
                 {
+                    b.HasOne("PA.Domain.Entities.Igreja", "Igreja")
+                        .WithMany()
+                        .HasForeignKey("IgrejaId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("PA.Domain.Entities.Pastoral", "Pastoral")
                         .WithMany("Grupos")
                         .HasForeignKey("PastoralId")
@@ -660,6 +938,8 @@ namespace PA.Infrastructure.Migrations
                                 .HasForeignKey("GrupoId");
                         });
 
+                    b.Navigation("Igreja");
+
                     b.Navigation("Pastoral");
 
                     b.Navigation("Theme")
@@ -679,6 +959,11 @@ namespace PA.Infrastructure.Migrations
 
             modelBuilder.Entity("PA.Domain.Entities.Notificacao", b =>
                 {
+                    b.HasOne("PA.Domain.Entities.User", "Destinatario")
+                        .WithMany()
+                        .HasForeignKey("DestinatarioId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.HasOne("PA.Domain.Entities.Grupo", "Grupo")
                         .WithMany()
                         .HasForeignKey("GrupoId")
@@ -689,6 +974,8 @@ namespace PA.Infrastructure.Migrations
                         .HasForeignKey("RemetenteId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Destinatario");
 
                     b.Navigation("Grupo");
 
@@ -794,6 +1081,25 @@ namespace PA.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("PA.Domain.Entities.PostSalvo", b =>
+                {
+                    b.HasOne("PA.Domain.Entities.Post", "Post")
+                        .WithMany()
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PA.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Post");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("PA.Domain.Entities.PostShare", b =>
                 {
                     b.HasOne("PA.Domain.Entities.Post", "Post")
@@ -815,6 +1121,10 @@ namespace PA.Infrastructure.Migrations
 
             modelBuilder.Entity("PA.Domain.Entities.User", b =>
                 {
+                    b.HasOne("PA.Domain.Entities.Igreja", "Igreja")
+                        .WithMany()
+                        .HasForeignKey("IgrejaId");
+
                     b.HasOne("PA.Domain.Entities.Role", "Role")
                         .WithMany("Users")
                         .HasForeignKey("RoleId")
@@ -842,6 +1152,8 @@ namespace PA.Infrastructure.Migrations
 
                     b.Navigation("Email")
                         .IsRequired();
+
+                    b.Navigation("Igreja");
 
                     b.Navigation("Role");
                 });
@@ -878,6 +1190,11 @@ namespace PA.Infrastructure.Migrations
                         .HasForeignKey("UsersId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("PA.Domain.Entities.Evento", b =>
+                {
+                    b.Navigation("Participantes");
                 });
 
             modelBuilder.Entity("PA.Domain.Entities.Grupo", b =>

@@ -172,7 +172,6 @@ public static class DatabaseSeeder
         Console.WriteLine($"   Email: admin@admin.com");
         Console.WriteLine($"   Senha: admin@admin");
 
-        // Seed Posts
         var posts = new[]
         {
             new Post(
@@ -205,7 +204,6 @@ public static class DatabaseSeeder
         await context.SaveChangesAsync();
         Console.WriteLine("✅ Posts de boas-vindas criados");
 
-        // Seed Eventos
         var eventos = new[]
         {
             new Evento(

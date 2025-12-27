@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PA.Application.Interfaces.Repositories;
 using PA.Domain.Entities;
+using PA.Domain.Enums;
 using PA.Infrastructure.Data.Context;
 
 namespace PA.Infrastructure.Repositories;
@@ -20,6 +21,9 @@ public class PostRepository : IPostRepository
     {
         return await _context.Posts
             .Include(p => p.Author)
+            .Include(p => p.Reactions)
+            .Include(p => p.Comments).ThenInclude(c => c.User)
+            .Include(p => p.Shares)
             .FirstOrDefaultAsync(p => p.Id == id);
     }
 
@@ -48,13 +52,12 @@ public class PostRepository : IPostRepository
 
     public async Task UpdateAsync(Post entity)
     {
-        _context.Posts.Update(entity);
         await _context.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(Guid id)
     {
-        var post = await GetByIdAsync(id);
+        var post = await _context.Posts.FindAsync(id);
         if (post != null)
         {
             _context.Posts.Remove(post);
@@ -83,11 +86,24 @@ public class PostRepository : IPostRepository
 
     public async Task<IEnumerable<Post>> GetPinnedPostsAsync()
     {
-        return await _context.Posts
+        var posts = await _context.Posts
             .Include(p => p.Author)
             .Where(p => p.IsPinned)
-            .OrderByDescending(p => p.CreatedAt)
             .ToListAsync();
+        
+        return posts.OrderByDescending(p => GetPinPriority(p.PinType))
+                   .ThenByDescending(p => p.CreatedAt);
+    }
+
+    private int GetPinPriority(string? pinType)
+    {
+        return pinType switch
+        {
+            "Admin" => 3,
+            "Coordenador Geral" => 2,
+            "Coordenador de Grupo" => 1,
+            _ => 0
+        };
     }
 
     public async Task<IEnumerable<Post>> GetRecentPostsAsync(int count = 50)
@@ -101,13 +117,30 @@ public class PostRepository : IPostRepository
 
     public async Task<IEnumerable<Post>> GetByPastoralAsync(Guid pastoralId)
     {
-        return await _context.Posts
+        var posts = await _context.Posts
             .Include(p => p.Author)
             .Include(p => p.Reactions)
             .Include(p => p.Comments)
-            .Where(p => p.Author.UserGrupos.Any(ug => ug.Grupo.PastoralId == pastoralId && ug.IsAtivo))
-            .OrderByDescending(p => p.CreatedAt)
+            .Where(p => p.PastoralId == pastoralId)
             .ToListAsync();
+        
+        return posts.OrderByDescending(p => p.IsPinned)
+                   .ThenByDescending(p => GetPinPriority(p.PinType))
+                   .ThenByDescending(p => p.CreatedAt);
+    }
+
+    public async Task<IEnumerable<Post>> GetByTipoPastoralAsync(TipoPastoral tipoPastoral)
+    {
+        var posts = await _context.Posts
+            .Include(p => p.Author)
+            .Include(p => p.Reactions)
+            .Include(p => p.Comments)
+            .Where(p => p.TipoPastoral == tipoPastoral)
+            .ToListAsync();
+        
+        return posts.OrderByDescending(p => p.IsPinned)
+                   .ThenByDescending(p => GetPinPriority(p.PinType))
+                   .ThenByDescending(p => p.CreatedAt);
     }
 
     public async Task<IEnumerable<Post>> GetByGrupoAsync(Guid grupoId)
@@ -150,4 +183,69 @@ public class PostRepository : IPostRepository
             .Select(ps => ps.Post)
             .ToListAsync();
     }
+
+    public async Task<PostReaction?> GetReactionAsync(Guid postId, Guid userId)
+    {
+        return await _context.Set<PostReaction>()
+            .FirstOrDefaultAsync(r => r.PostId == postId && r.UserId == userId);
+    }
+
+    public async Task AddReactionAsync(PostReaction reaction)
+    {
+        await _context.Set<PostReaction>().AddAsync(reaction);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task RemoveReactionAsync(PostReaction reaction)
+    {
+        _context.Set<PostReaction>().Remove(reaction);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<PostComment?> GetCommentByIdAsync(Guid commentId)
+    {
+        return await _context.Set<PostComment>()
+            .Include(c => c.User)
+            .FirstOrDefaultAsync(c => c.Id == commentId);
+    }
+
+    public async Task<IEnumerable<PostComment>> GetCommentsByPostIdAsync(Guid postId)
+    {
+        return await _context.Set<PostComment>()
+            .Include(c => c.User)
+            .Where(c => c.PostId == postId && c.IsAtivo)
+            .OrderBy(c => c.DataComentario)
+            .ToListAsync();
+    }
+
+    public async Task<PostComment> AddCommentAsync(PostComment comment)
+    {
+        await _context.Set<PostComment>().AddAsync(comment);
+        await _context.SaveChangesAsync();
+        
+        return (await GetCommentByIdAsync(comment.Id))!;
+    }
+
+    public async Task RemoveCommentAsync(PostComment comment)
+    {
+        _context.Set<PostComment>().Remove(comment);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task AddShareAsync(PostShare share)
+    {
+        await _context.Set<PostShare>().AddAsync(share);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<IEnumerable<Post>> GetByTypeAsync(PostType type, int count = 10)
+    {
+        return await _context.Posts
+            .Include(p => p.Author)
+            .Where(p => p.Type == type)
+            .OrderByDescending(p => p.CreatedAt)
+            .Take(count)
+            .ToListAsync();
+    }
 }
+

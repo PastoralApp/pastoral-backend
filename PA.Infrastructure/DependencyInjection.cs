@@ -7,6 +7,7 @@ using PA.Application.Services;
 using PA.Infrastructure.Auth;
 using PA.Infrastructure.Data.Context;
 using PA.Infrastructure.Repositories;
+using PA.Infrastructure.Services;
 
 namespace PA.Infrastructure;
 
@@ -29,16 +30,11 @@ public static class DependencyInjection
         services.AddScoped<IGrupoRepository, GrupoRepository>();
         services.AddScoped<IPastoralRepository, PastoralRepository>();
         services.AddScoped<INotificacaoRepository, NotificacaoRepository>();
-// Services
-services.AddScoped<IPastoralService, PastoralService>();
-services.AddScoped<IGrupoService, GrupoService>();
-services.AddScoped<INotificacaoService, NotificacaoService>();
-services.AddScoped<IIgrejaService, IgrejaService>();
-services.AddScoped<IHorarioMissaService, HorarioMissaService>();
-services.AddScoped<IEventoService, EventoService>();
-services.AddScoped<IUserService, UserService>();
+        services.AddScoped<ITagRepository, TagRepository>();
+        services.AddScoped<IEmailVerificationRepository, EmailVerificationRepository>();
+        services.AddScoped<IUserGrupoRepository, UserGrupoRepository>();
+   
 
-// Repositories
 services.AddScoped<IPastoralRepository, PastoralRepository>();
 services.AddScoped<IGrupoRepository, GrupoRepository>();
 services.AddScoped<IUserRepository, UserRepository>();
@@ -51,7 +47,16 @@ services.AddScoped<IPostRepository, PostRepository>();
 
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IEventoService, EventoService>();
-        services.AddScoped<PostService>();
+        services.AddScoped<IGrupoService, GrupoService>();
+        services.AddScoped<IPastoralService, PastoralService>();
+        services.AddScoped<IIgrejaService, IgrejaService>();
+        services.AddScoped<IHorarioMissaService, HorarioMissaService>();
+        services.AddScoped<INotificacaoService, NotificacaoService>();
+        services.AddScoped<IPostService, PostService>();
+        services.AddScoped<IEmailService, SmtpEmailService>();
+        
+        services.AddSingleton<IEmailQueueService, EmailQueueService>();
+        services.AddHostedService<EmailQueueBackgroundService>();
 
         services.Configure<JwtSettings>(options =>
         {

@@ -27,7 +27,9 @@ public class PastoralAppDbContext : DbContext
     public DbSet<PostShare> PostShares => Set<PostShare>();
     public DbSet<PostSalvo> PostsSalvos => Set<PostSalvo>();
     public DbSet<EventoSalvo> EventosSalvos => Set<EventoSalvo>();
-
+    public DbSet<EventoParticipante> EventoParticipantes => Set<EventoParticipante>();
+    public DbSet<EmailVerification> EmailVerifications => Set<EmailVerification>();
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -119,6 +121,11 @@ public class PastoralAppDbContext : DbContext
                 .HasForeignKey(e => e.PastoralId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            entity.HasOne(e => e.Igreja)
+                .WithMany()
+                .HasForeignKey(e => e.IgrejaId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             entity.OwnsOne(e => e.Theme, theme =>
             {
                 theme.Property(t => t.PrimaryColor)
@@ -139,6 +146,7 @@ public class PastoralAppDbContext : DbContext
             entity.Property(e => e.Content).IsRequired().HasMaxLength(5000);
             entity.Property(e => e.ImageUrl).HasMaxLength(500);
             entity.Property(e => e.Type).IsRequired();
+            entity.Property(e => e.PinType).HasMaxLength(50);
 
             entity.HasOne(e => e.Author)
                 .WithMany(u => u.Posts)
@@ -156,13 +164,40 @@ public class PastoralAppDbContext : DbContext
             entity.Property(e => e.Description).IsRequired().HasMaxLength(5000);
             entity.Property(e => e.Location).HasMaxLength(500);
             entity.Property(e => e.ImageUrl).HasMaxLength(500);
+            entity.Property(e => e.BannerUrl).HasMaxLength(500);
+            entity.Property(e => e.Type).IsRequired();
+            entity.Property(e => e.LinkInscricao).HasMaxLength(500);
+            entity.Property(e => e.Preco).HasPrecision(10, 2);
 
             entity.HasOne(e => e.CreatedBy)
                 .WithMany(u => u.EventosCreated)
                 .HasForeignKey(e => e.CreatedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasMany(e => e.Participantes)
+                .WithOne(p => p.Evento)
+                .HasForeignKey(p => p.EventoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             entity.HasIndex(e => e.EventDate);
+            entity.HasIndex(e => e.Type);
+        });
+
+        modelBuilder.Entity<EventoParticipante>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.HasOne(e => e.Evento)
+                .WithMany(ev => ev.Participantes)
+                .HasForeignKey(e => e.EventoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.EventoId, e.UserId }).IsUnique();
         });
 
         modelBuilder.Entity<Tag>(entity =>
@@ -205,10 +240,17 @@ public class PastoralAppDbContext : DbContext
             entity.Property(e => e.Mensagem).IsRequired().HasMaxLength(2000);
             entity.Property(e => e.DataEnvio).IsRequired();
             entity.Property(e => e.IsGeral).IsRequired();
+            entity.Property(e => e.SendEmail).IsRequired();
 
             entity.HasOne(e => e.Grupo)
                 .WithMany()
                 .HasForeignKey(e => e.GrupoId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired(false);
+
+            entity.HasOne(e => e.Destinatario)
+                .WithMany()
+                .HasForeignKey(e => e.DestinatarioId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .IsRequired(false);
 
@@ -218,6 +260,7 @@ public class PastoralAppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(e => new { e.GrupoId, e.DataEnvio });
+            entity.HasIndex(e => e.DestinatarioId);
         });
 
         modelBuilder.Entity<NotificacaoLeitura>(entity =>
@@ -323,6 +366,19 @@ public class PastoralAppDbContext : DbContext
 
             entity.HasIndex(e => new { e.UserId, e.EventoId }).IsUnique();
             entity.HasIndex(e => new { e.UserId, e.DataSalvamento });
+        });
+
+        modelBuilder.Entity<EmailVerification>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Email).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Code).IsRequired().HasMaxLength(10);
+            entity.Property(e => e.ExpiresAt).IsRequired();
+            entity.Property(e => e.IsUsed).IsRequired();
+            entity.Property(e => e.Purpose).HasMaxLength(50);
+
+            entity.HasIndex(e => new { e.Email, e.Code });
+            entity.HasIndex(e => e.ExpiresAt);
         });
     }
 }
