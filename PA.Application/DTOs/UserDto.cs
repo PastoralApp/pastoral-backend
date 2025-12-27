@@ -10,10 +10,26 @@ public class UserDto
     public bool IsActive { get; set; }
     public Guid RoleId { get; set; }
     public string RoleName { get; set; } = string.Empty;
+    public Guid? IgrejaId { get; set; }
+    public string? IgrejaNome { get; set; }
     public Guid? GrupoId { get; set; }
     public string? GrupoName { get; set; }
     public List<TagDto> Tags { get; set; } = new();
+    public List<UserGrupoDto> Grupos { get; set; } = new();
     public DateTime CreatedAt { get; set; }
+}
+
+public class UserGrupoDto
+{
+    public Guid Id { get; set; }
+    public Guid GrupoId { get; set; }
+    public string GrupoName { get; set; } = string.Empty;
+    public string GrupoSigla { get; set; } = string.Empty;
+    public string? GrupoLogoUrl { get; set; }
+    public string PrimaryColor { get; set; } = string.Empty;
+    public string? PastoralName { get; set; }
+    public DateTime DataEntrada { get; set; }
+    public bool SilenciarNotificacoes { get; set; }
 }
 
 public class CreateUserDto
@@ -30,4 +46,20 @@ public class TagDto
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Color { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+}
+
+public class CreateTagDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string Color { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+}
+
+public class UpdateUserAdminDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string? Telefone { get; set; }
+    public DateTime? BirthDate { get; set; }
+    public Guid RoleId { get; set; }
 }

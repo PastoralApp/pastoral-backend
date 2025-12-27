@@ -96,7 +96,6 @@ public class GoogleAuthService
             return GoogleLoginResult.Success(user, token);
         }
 
-        // Usuário ainda não existe: exigir completar cadastro (ex: definir senha)
         var regToken = _jwtTokenService.GenerateGoogleRegistrationToken(
             email: payload.Email,
             name: payload.Name ?? payload.Email,

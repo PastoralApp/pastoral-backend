@@ -80,13 +80,37 @@ public class NotificacoesController : ControllerBase
             Titulo = n.Titulo,
             Mensagem = n.Mensagem,
             GrupoId = n.GrupoId,
-            GrupoNome = n.Grupo.Name,
-            GrupoSigla = n.Grupo.Sigla,
+            GrupoNome = n.Grupo?.Name,
+            GrupoSigla = n.Grupo?.Sigla,
             RemetenteId = n.RemetenteId,
             RemetenteNome = n.Remetente.Name,
             DataEnvio = n.DataEnvio,
             IsAtiva = n.IsAtiva,
             Lida = false
+        });
+
+        return Ok(dtos);
+    }
+
+    [HttpGet("admin/all")]
+    [Authorize(Roles = "Administrador")]
+    public async Task<IActionResult> GetAllNotificacoesAdmin()
+    {
+        var notificacoes = await _notificacaoRepository.GetAllAsync();
+
+        var dtos = notificacoes.Select(n => new NotificacaoDto
+        {
+            Id = n.Id,
+            Titulo = n.Titulo,
+            Mensagem = n.Mensagem,
+            GrupoId = n.GrupoId,
+            GrupoNome = n.Grupo?.Name,
+            GrupoSigla = n.Grupo?.Sigla,
+            RemetenteId = n.RemetenteId,
+            RemetenteNome = n.Remetente.Name,
+            DataEnvio = n.DataEnvio,
+            IsAtiva = n.IsAtiva,
+            IsGeral = n.IsGeral
         });
 
         return Ok(dtos);
@@ -105,7 +129,7 @@ public class NotificacoesController : ControllerBase
     }
 
     [HttpGet("grupo/{grupoId}")]
-    [Authorize(Roles = "Admin,CoordenadorGeral,CoordenadorGrupo")]
+    [Authorize(Roles = "Administrador,Coordenador Geral,Coordenador de Grupo")]
     public async Task<IActionResult> GetByGrupo(Guid grupoId, [FromQuery] bool incluirInativas = false)
     {
         var notificacoes = await _notificacaoRepository.GetByGrupoIdAsync(grupoId, incluirInativas);
@@ -116,8 +140,8 @@ public class NotificacoesController : ControllerBase
             Titulo = n.Titulo,
             Mensagem = n.Mensagem,
             GrupoId = n.GrupoId,
-            GrupoNome = n.Grupo.Name,
-            GrupoSigla = n.Grupo.Sigla,
+            GrupoNome = n.Grupo?.Name,
+            GrupoSigla = n.Grupo?.Sigla,
             RemetenteId = n.RemetenteId,
             RemetenteNome = n.Remetente.Name,
             DataEnvio = n.DataEnvio,
@@ -128,7 +152,7 @@ public class NotificacoesController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,CoordenadorGeral,CoordenadorGrupo")]
+    [Authorize(Roles = "Administrador,Coordenador Geral,Coordenador de Grupo")]
     [ServiceFilter(typeof(AuthorizationFilter))]
     public async Task<IActionResult> Create([FromBody] CreateNotificacaoDto dto)
     {
@@ -149,7 +173,7 @@ public class NotificacoesController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> GetById(Guid id)
     {
         var notificacao = await _notificacaoRepository.GetByIdAsync(id);
@@ -169,7 +193,7 @@ public class NotificacoesController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Administrador")]
     [ServiceFilter(typeof(AuthorizationFilter))]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateNotificacaoDto dto)
     {
@@ -184,7 +208,7 @@ public class NotificacoesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Administrador")]
     [ServiceFilter(typeof(AuthorizationFilter))]
     public async Task<IActionResult> Delete(Guid id)
     {
@@ -193,7 +217,7 @@ public class NotificacoesController : ControllerBase
     }
 
     [HttpPatch("{id}/desativar")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Administrador")]
     [ServiceFilter(typeof(AuthorizationFilter))]
     public async Task<IActionResult> Desativar(Guid id)
     {
@@ -207,7 +231,7 @@ public class NotificacoesController : ControllerBase
     }
 
     [HttpPatch("{id}/ativar")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Administrador")]
     [ServiceFilter(typeof(AuthorizationFilter))]
     public async Task<IActionResult> Ativar(Guid id)
     {
@@ -219,4 +243,49 @@ public class NotificacoesController : ControllerBase
         await _notificacaoRepository.UpdateAsync(notificacao);
         return NoContent();
     }
+
+    [HttpPost("enviar")]
+    [Authorize(Roles = "Coordenador Geral,Administrador")]
+    public async Task<IActionResult> EnviarNotificacao([FromBody] EnviarNotificacaoDto dto)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            return Unauthorized();
+
+        if (string.IsNullOrWhiteSpace(dto.Titulo))
+            return BadRequest("Título é obrigatório");
+
+        if (string.IsNullOrWhiteSpace(dto.Mensagem))
+            return BadRequest("Mensagem é obrigatória");
+
+        if (dto.Tipo == "grupo" && !dto.GrupoId.HasValue)
+            return BadRequest("GrupoId é obrigatório quando tipo é 'grupo'");
+
+        if (dto.Tipo == "pessoa" && !dto.UsuarioId.HasValue)
+            return BadRequest("UsuarioId é obrigatório quando tipo é 'pessoa'");
+
+        var notificacao = new PA.Domain.Entities.Notificacao(
+            dto.Titulo,
+            dto.Mensagem,
+            userId,
+            dto.Tipo == "grupo" ? dto.GrupoId : null
+        );
+
+        await _notificacaoRepository.AddAsync(notificacao);
+
+        if (dto.Tipo == "pessoa" && dto.UsuarioId.HasValue)
+        {
+        }
+
+        return Ok(new { message = "Notificação enviada com sucesso" });
+    }
 }
+
+public record EnviarNotificacaoDto(
+    string Titulo,
+    string Mensagem,
+    string EnviadoPor,
+    string Tipo,
+    Guid? GrupoId,
+    Guid? UsuarioId
+);

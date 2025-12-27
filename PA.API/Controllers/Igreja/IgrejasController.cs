@@ -84,7 +84,7 @@ public class IgrejasController : ControllerBase
     }
 
     [HttpPost]
-    [ServiceFilter(typeof(AuthorizationFilter))]
+    [Authorize(Roles = "Administrador,Coordenador Geral")]
     public async Task<IActionResult> Create([FromBody] CreateIgrejaDto dto)
     {
         var igreja = new IgrejaEntity(dto.Nome, dto.Endereco, dto.Telefone, dto.ImagemUrl);
@@ -102,7 +102,7 @@ public class IgrejasController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [ServiceFilter(typeof(AuthorizationFilter))]
+    [Authorize(Roles = "Administrador,Coordenador Geral")]
     public async Task<IActionResult> Update(Guid id, [FromBody] CreateIgrejaDto dto)
     {
         var igreja = await _igrejaRepository.GetByIdAsync(id);
@@ -116,7 +116,7 @@ public class IgrejasController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [ServiceFilter(typeof(AuthorizationFilter))]
+    [Authorize(Roles = "Administrador,Coordenador Geral")]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _igrejaRepository.DeleteAsync(id);
@@ -124,7 +124,7 @@ public class IgrejasController : ControllerBase
     }
 
     [HttpPatch("{id}/desativar")]
-    [ServiceFilter(typeof(AuthorizationFilter))]
+    [Authorize(Roles = "Administrador,Coordenador Geral")]
     public async Task<IActionResult> Desativar(Guid id)
     {
         var igreja = await _igrejaRepository.GetByIdAsync(id);
@@ -138,7 +138,7 @@ public class IgrejasController : ControllerBase
     }
 
     [HttpPatch("{id}/ativar")]
-    [ServiceFilter(typeof(AuthorizationFilter))]
+    [Authorize(Roles = "Administrador,Coordenador Geral")]
     public async Task<IActionResult> Ativar(Guid id)
     {
         var igreja = await _igrejaRepository.GetByIdAsync(id);

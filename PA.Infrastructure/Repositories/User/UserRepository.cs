@@ -19,8 +19,12 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users
             .Include(u => u.Role)
+            .Include(u => u.UserGrupos) // Carrega TODOS os UserGrupos para verificações adequadas
+                .ThenInclude(ug => ug.Grupo)
+                    .ThenInclude(g => g.Pastoral)
             .Include(u => u.UserGrupos)
                 .ThenInclude(ug => ug.Grupo)
+                    .ThenInclude(g => g.Theme)
             .Include(u => u.Tags)
             .FirstOrDefaultAsync(u => u.Id == id);
     }
@@ -29,8 +33,12 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users
             .Include(u => u.Role)
+            .Include(u => u.UserGrupos) // Carrega TODOS os UserGrupos
+                .ThenInclude(ug => ug.Grupo)
+                    .ThenInclude(g => g.Pastoral)
             .Include(u => u.UserGrupos)
                 .ThenInclude(ug => ug.Grupo)
+                    .ThenInclude(g => g.Theme)
             .Include(u => u.Tags)
             .ToListAsync();
     }
@@ -39,8 +47,13 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users
             .Include(u => u.Role)
+            .Include(u => u.UserGrupos) // Carrega TODOS os UserGrupos
+                .ThenInclude(ug => ug.Grupo)
+                    .ThenInclude(g => g.Pastoral)
             .Include(u => u.UserGrupos)
                 .ThenInclude(ug => ug.Grupo)
+                    .ThenInclude(g => g.Theme)
+            .Include(u => u.Tags)
             .Where(predicate)
             .ToListAsync();
     }
@@ -54,7 +67,17 @@ public class UserRepository : IUserRepository
 
     public async Task UpdateAsync(User entity)
     {
-        _context.Users.Update(entity);
+        var tracked = _context.Entry(entity);
+        
+        if (tracked.State == EntityState.Detached)
+        {
+            _context.Users.Update(entity);
+        }
+        else
+        {
+            tracked.State = EntityState.Modified;
+        }
+        
         await _context.SaveChangesAsync();
     }
 
@@ -82,8 +105,13 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users
             .Include(u => u.Role)
+            .Include(u => u.UserGrupos) // Carrega TODOS os UserGrupos
+                .ThenInclude(ug => ug.Grupo)
+                    .ThenInclude(g => g.Pastoral)
             .Include(u => u.UserGrupos)
                 .ThenInclude(ug => ug.Grupo)
+                    .ThenInclude(g => g.Theme)
+            .Include(u => u.Tags)
             .FirstOrDefaultAsync(u => u.Email.Value == email);
     }
 
@@ -91,8 +119,13 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users
             .Include(u => u.Role)
+            .Include(u => u.UserGrupos) // Carrega TODOS os UserGrupos
+                .ThenInclude(ug => ug.Grupo)
+                    .ThenInclude(g => g.Pastoral)
             .Include(u => u.UserGrupos)
                 .ThenInclude(ug => ug.Grupo)
+                    .ThenInclude(g => g.Theme)
+            .Include(u => u.Tags)
             .Where(u => u.UserGrupos.Any(ug => ug.GrupoId == grupoId && ug.IsAtivo))
             .ToListAsync();
     }
@@ -101,8 +134,13 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users
             .Include(u => u.Role)
-            .Include(u => u.UserGrupos)
+            .Include(u => u.UserGrupos.Where(ug => ug.IsAtivo))
                 .ThenInclude(ug => ug.Grupo)
+                    .ThenInclude(g => g.Pastoral)
+            .Include(u => u.UserGrupos.Where(ug => ug.IsAtivo))
+                .ThenInclude(ug => ug.Grupo)
+                    .ThenInclude(g => g.Theme)
+            .Include(u => u.Tags)
             .Where(u => u.RoleId == roleId)
             .ToListAsync();
     }

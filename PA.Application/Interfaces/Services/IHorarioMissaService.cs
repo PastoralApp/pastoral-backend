@@ -11,4 +11,6 @@ public interface IHorarioMissaService
     Task<HorarioMissaDto> CreateAsync(CreateHorarioMissaDto dto);
     Task UpdateAsync(Guid id, CreateHorarioMissaDto dto);
     Task DeleteAsync(Guid id);
+    Task DesativarAsync(Guid id);
+    Task AtivarAsync(Guid id);
 }

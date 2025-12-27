@@ -20,6 +20,7 @@ public class GrupoRepository : IGrupoRepository
     {
         return await _context.Grupos
             .Include(g => g.Pastoral)
+            .Include(g => g.Igreja)
             .Include(g => g.UserGrupos.Where(ug => ug.IsAtivo))
                 .ThenInclude(ug => ug.User)
             .FirstOrDefaultAsync(g => g.Id == id);
@@ -29,6 +30,7 @@ public class GrupoRepository : IGrupoRepository
     {
         var query = _context.Grupos
             .Include(g => g.Pastoral)
+            .Include(g => g.Igreja)
             .AsQueryable();
 
         if (!incluirInativos)
@@ -41,6 +43,7 @@ public class GrupoRepository : IGrupoRepository
     {
         var query = _context.Grupos
             .Include(g => g.Pastoral)
+            .Include(g => g.Igreja)
             .Where(g => g.PastoralId == pastoralId);
 
         if (!incluirInativos)
@@ -53,6 +56,7 @@ public class GrupoRepository : IGrupoRepository
     {
         var query = _context.Grupos
             .Include(g => g.Pastoral)
+            .Include(g => g.Igreja)
             .Where(g => g.Pastoral.TipoPastoral == tipo);
 
         if (!incluirInativos)
@@ -70,7 +74,17 @@ public class GrupoRepository : IGrupoRepository
 
     public async Task<Grupo> UpdateAsync(Grupo grupo)
     {
-        _context.Grupos.Update(grupo);
+        var tracked = _context.Entry(grupo);
+        
+        if (tracked.State == EntityState.Detached)
+        {
+            _context.Grupos.Update(grupo);
+        }
+        else
+        {
+            tracked.State = EntityState.Modified;
+        }
+        
         await _context.SaveChangesAsync();
         return grupo;
     }

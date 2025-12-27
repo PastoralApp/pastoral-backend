@@ -86,8 +86,7 @@ public class HorariosMissasController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize]
-    [ServiceFilter(typeof(AuthorizationFilter))]
+    [Authorize(Roles = "Administrador,Coordenador Geral")]
     public async Task<IActionResult> Create([FromBody] CreateHorarioMissaDto dto)
     {
         var horario = new HorarioMissaEntity(dto.IgrejaId, dto.DiaSemana, dto.Horario, dto.Celebrante, dto.Observacao);
@@ -108,8 +107,7 @@ public class HorariosMissasController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize]
-    [ServiceFilter(typeof(AuthorizationFilter))]
+    [Authorize(Roles = "Administrador,Coordenador Geral")]
     public async Task<IActionResult> Update(Guid id, [FromBody] CreateHorarioMissaDto dto)
     {
         var horario = await _horarioMissaRepository.GetByIdAsync(id);
@@ -123,8 +121,7 @@ public class HorariosMissasController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize]
-    [ServiceFilter(typeof(AuthorizationFilter))]
+    [Authorize(Roles = "Administrador,Coordenador Geral")]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _horarioMissaRepository.DeleteAsync(id);

@@ -1,4 +1,5 @@
 using PA.Domain.Entities;
+using PA.Domain.Enums;
 using PA.Domain.Interfaces;
 
 namespace PA.Application.Interfaces.Repositories;
@@ -10,6 +11,8 @@ public interface IEventoRepository : IRepository<Evento>
     Task<IEnumerable<Evento>> GetByCreatorIdAsync(Guid creatorId);
     Task<IEnumerable<Evento>> GetByGrupoAsync(Guid grupoId);
     Task<IEnumerable<Evento>> GetByPastoralAsync(Guid pastoralId);
+    Task<IEnumerable<Evento>> GetByTypeAsync(EventoType type);
+    Task<Evento?> GetByIdWithParticipantesAsync(Guid eventoId);
     Task<EventoSalvo?> GetEventoSalvoAsync(Guid eventoId, Guid userId);
     Task AddEventoSalvoAsync(EventoSalvo eventoSalvo);
     Task RemoveEventoSalvoAsync(EventoSalvo eventoSalvo);

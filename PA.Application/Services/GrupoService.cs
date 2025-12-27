@@ -12,17 +12,20 @@ public class GrupoService : IGrupoService
     private readonly IGrupoRepository _grupoRepository;
     private readonly IPastoralRepository _pastoralRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IUserGrupoRepository _userGrupoRepository;
     private readonly IMapper _mapper;
 
     public GrupoService(
         IGrupoRepository grupoRepository,
         IPastoralRepository pastoralRepository,
         IUserRepository userRepository,
+        IUserGrupoRepository userGrupoRepository,
         IMapper mapper)
     {
         _grupoRepository = grupoRepository;
         _pastoralRepository = pastoralRepository;
         _userRepository = userRepository;
+        _userGrupoRepository = userGrupoRepository;
         _mapper = mapper;
     }
 
@@ -57,7 +60,8 @@ public class GrupoService : IGrupoService
             dto.PastoralId,
             new ColorTheme(dto.PrimaryColor, dto.SecondaryColor),
             dto.LogoUrl,
-            dto.Icon
+            dto.Icon,
+            dto.IgrejaId
         );
 
         var created = await _grupoRepository.AddAsync(grupo);
@@ -72,6 +76,7 @@ public class GrupoService : IGrupoService
 
         grupo.UpdateInfo(dto.Name, dto.Sigla, dto.Description, dto.LogoUrl);
         grupo.UpdateTheme(new ColorTheme(dto.PrimaryColor, dto.SecondaryColor));
+        grupo.UpdateIgreja(dto.IgrejaId);
         
         if (!string.IsNullOrEmpty(dto.Icon))
             grupo.UpdateIcon(dto.Icon);
@@ -110,25 +115,40 @@ public class GrupoService : IGrupoService
 
     public async Task AddMemberAsync(Guid grupoId, Guid userId)
     {
-        var grupo = await _grupoRepository.GetByIdAsync(grupoId);
-        if (grupo == null)
+        var grupoExists = await _grupoRepository.GetByIdAsync(grupoId);
+        if (grupoExists == null)
             throw new KeyNotFoundException($"Grupo {grupoId} não encontrado");
 
-        var user = await _userRepository.GetByIdAsync(userId);
-        if (user == null)
+        var userExists = await _userRepository.ExistsAsync(userId);
+        if (!userExists)
             throw new KeyNotFoundException($"User {userId} não encontrado");
 
-        user.AdicionarAoGrupo(grupoId, grupo);
-        await _userRepository.UpdateAsync(user);
+        var gruposAtivosCount = await _userGrupoRepository.CountActiveGruposByUserAsync(userId);
+        if (gruposAtivosCount >= 4)
+            throw new InvalidOperationException("Usuário já atingiu o limite de 4 grupos");
+
+        var existingRelation = await _userGrupoRepository.GetByUserAndGrupoAsync(userId, grupoId);
+        if (existingRelation != null)
+        {
+            if (!existingRelation.IsAtivo)
+            {
+                existingRelation.Ativar();
+                await _userGrupoRepository.UpdateAsync(existingRelation);
+            }
+            return;
+        }
+
+        var userGrupo = new UserGrupo(userId, grupoId);
+        await _userGrupoRepository.AddAsync(userGrupo);
     }
 
     public async Task RemoveMemberAsync(Guid grupoId, Guid userId)
     {
-        var user = await _userRepository.GetByIdAsync(userId);
-        if (user == null)
-            throw new KeyNotFoundException($"User {userId} não encontrado");
+        var userGrupo = await _userGrupoRepository.GetByUserAndGrupoAsync(userId, grupoId);
+        if (userGrupo == null)
+            throw new KeyNotFoundException($"Usuário não está neste grupo");
 
-        user.RemoverDoGrupo(grupoId);
-        await _userRepository.UpdateAsync(user);
+        userGrupo.Desativar();
+        await _userGrupoRepository.UpdateAsync(userGrupo);
     }
 }

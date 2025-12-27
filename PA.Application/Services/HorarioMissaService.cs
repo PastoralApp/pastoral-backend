@@ -87,4 +87,24 @@ public class HorarioMissaService : IHorarioMissaService
 
         await _horarioMissaRepository.DeleteAsync(id);
     }
+
+    public async Task DesativarAsync(Guid id)
+    {
+        var horario = await _horarioMissaRepository.GetByIdAsync(id);
+        if (horario == null)
+            throw new KeyNotFoundException($"Horário de Missa {id} não encontrado");
+
+        horario.Deactivate();
+        await _horarioMissaRepository.UpdateAsync(horario);
+    }
+
+    public async Task AtivarAsync(Guid id)
+    {
+        var horario = await _horarioMissaRepository.GetByIdAsync(id);
+        if (horario == null)
+            throw new KeyNotFoundException($"Horário de Missa {id} não encontrado");
+
+        horario.Activate();
+        await _horarioMissaRepository.UpdateAsync(horario);
+    }
 }

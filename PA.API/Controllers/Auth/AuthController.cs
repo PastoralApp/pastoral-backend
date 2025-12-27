@@ -1,9 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using PA.Application.DTOs;
 using PA.Application.Interfaces.Repositories;
+using PA.Application.Interfaces.Services;
 using PA.Infrastructure.Auth;
+using PA.Infrastructure.Data.Context;
 using PA.Domain.ValueObjects;
+using PA.Domain.Entities;
 using System.Security.Claims;
+using System.Security.Cryptography;
 
 namespace PA.API.Controllers.Auth;
 
@@ -14,15 +19,24 @@ public class AuthController : ControllerBase
     private readonly IUserRepository _userRepository;
     private readonly JwtTokenService _jwtTokenService;
     private readonly GoogleAuthService _googleAuthService;
+    private readonly IEmailService _emailService;
+    private readonly IEmailVerificationRepository _emailVerificationRepository;
+    private readonly PastoralAppDbContext _context;
 
     public AuthController(
         IUserRepository userRepository, 
         JwtTokenService jwtTokenService,
-        GoogleAuthService googleAuthService)
+        GoogleAuthService googleAuthService,
+        IEmailService emailService,
+        IEmailVerificationRepository emailVerificationRepository,
+        PastoralAppDbContext context)
     {
         _userRepository = userRepository;
         _jwtTokenService = jwtTokenService;
         _googleAuthService = googleAuthService;
+        _emailService = emailService;
+        _emailVerificationRepository = emailVerificationRepository;
+        _context = context;
     }
 
     [HttpPost("login")]
@@ -46,7 +60,7 @@ public class AuthController : ControllerBase
                 user.Id,
                 user.Name,
                 Email = user.Email.Value,
-                Role = user.Role.Type.ToString()
+                Role = user.Role.Name
             }
         });
     }
@@ -60,6 +74,26 @@ public class AuthController : ControllerBase
 
             if (result.RequiresCompletion)
             {
+                await _emailVerificationRepository.DeleteByEmailAsync(result.Email!);
+                
+                var code = GenerateVerificationCode();
+                var verification = new EmailVerification(
+                    result.Email!, 
+                    code, 
+                    DateTime.UtcNow.AddMinutes(15), 
+                    "registration"
+                );
+                await _emailVerificationRepository.AddAsync(verification);
+
+                try
+                {
+                    await _emailService.SendVerificationCodeAsync(result.Email!, result.Name ?? "Usuário", code);
+                }
+                catch (Exception ex)
+                {
+                    return StatusCode(500, new { message = $"Erro ao enviar email: {ex.Message}" });
+                }
+
                 return Ok(new
                 {
                     requiresCompletion = true,
@@ -69,7 +103,8 @@ public class AuthController : ControllerBase
                         email = result.Email,
                         name = result.Name,
                         photoUrl = result.PhotoUrl
-                    }
+                    },
+                    message = "Código de verificação enviado para o email"
                 });
             }
 
@@ -84,7 +119,7 @@ public class AuthController : ControllerBase
                     user.Name,
                     Email = user.Email.Value,
                     user.PhotoUrl,
-                    Role = user.Role.Type.ToString()
+                    Role = user.Role.Name
                 }
             });
         }
@@ -101,6 +136,8 @@ public class AuthController : ControllerBase
             return BadRequest(new { message = "registrationToken é obrigatório" });
         if (string.IsNullOrWhiteSpace(dto.Password) || dto.Password.Length < 6)
             return BadRequest(new { message = "Senha inválida (mínimo 6 caracteres)" });
+        if (string.IsNullOrWhiteSpace(dto.VerificationCode))
+            return BadRequest(new { message = "Código de verificação é obrigatório" });
 
         var principal = _jwtTokenService.ValidateToken(dto.RegistrationToken);
         if (principal == null)
@@ -116,6 +153,15 @@ public class AuthController : ControllerBase
 
         if (string.IsNullOrWhiteSpace(email))
             return Unauthorized(new { message = "registrationToken inválido" });
+
+        var verification = await _emailVerificationRepository.GetValidCodeAsync(
+            email, 
+            dto.VerificationCode, 
+            "registration"
+        );
+
+        if (verification == null)
+            return BadRequest(new { message = "Código inválido ou expirado" });
 
         var existing = await _userRepository.GetByEmailAsync(email);
         if (existing != null)
@@ -133,19 +179,35 @@ public class AuthController : ControllerBase
                     existing.Name,
                     Email = existing.Email.Value,
                     existing.PhotoUrl,
-                    Role = existing.Role.Type.ToString()
+                    Role = existing.Role.Name
                 }
             });
         }
 
-        var defaultRoleId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+        verification.MarkAsUsed();
+        await _emailVerificationRepository.UpdateAsync(verification);
+
+        var defaultRole = await _context.Roles.FirstOrDefaultAsync(r => r.Type == PA.Domain.Enums.RoleType.Usuario);
+        if (defaultRole == null)
+            return StatusCode(500, new { message = "Erro ao obter role padrão" });
+
         var name = string.IsNullOrWhiteSpace(dto.Name) ? (nameFromToken ?? email) : dto.Name.Trim();
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
-        var user = new PA.Domain.Entities.User(name, new Email(email), passwordHash, defaultRoleId);
+        var user = new PA.Domain.Entities.User(name, new Email(email), passwordHash, defaultRole.Id);
+        user.VerifyEmail();
         if (!string.IsNullOrWhiteSpace(photoUrl))
             user.UpdateProfile(name, null, photoUrl);
 
         user = await _userRepository.AddAsync(user);
+
+        await _emailVerificationRepository.DeleteByEmailAsync(email);
+
+        try
+        {
+            await _emailService.SendWelcomeEmailAsync(email, name);
+        }
+        catch { }
+
         var token = _jwtTokenService.GenerateToken(user);
 
         return Ok(new
@@ -157,7 +219,7 @@ public class AuthController : ControllerBase
                 user.Name,
                 Email = user.Email.Value,
                 user.PhotoUrl,
-                Role = user.Role.Type.ToString()
+                Role = user.Role.Name
             }
         });
     }
@@ -197,7 +259,29 @@ public class AuthController : ControllerBase
             var result = await _googleAuthService.ExchangeCodeForLoginWithCompletionAsync(code, redirectUri);
 
             if (result.RequiresCompletion)
+            {
+                await _emailVerificationRepository.DeleteByEmailAsync(result.Email!);
+                
+                var verificationCode = GenerateVerificationCode();
+                var verification = new EmailVerification(
+                    result.Email!, 
+                    verificationCode, 
+                    DateTime.UtcNow.AddMinutes(15), 
+                    "registration"
+                );
+                await _emailVerificationRepository.AddAsync(verification);
+
+                try
+                {
+                    await _emailService.SendVerificationCodeAsync(result.Email!, result.Name ?? "Usuário", verificationCode);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Erro ao enviar email: {ex.Message}");
+                }
+
                 return Redirect($"http://localhost:4200/auth/google-complete?registrationToken={Uri.EscapeDataString(result.RegistrationToken!)}");
+            }
 
             return Redirect($"http://localhost:4200/auth/google-success?token={Uri.EscapeDataString(result.Token!)}");
         }
@@ -206,6 +290,165 @@ public class AuthController : ControllerBase
             return Redirect($"http://localhost:4200/auth/login?error={Uri.EscapeDataString(ex.Message)}");
         }
     }
+
+    [HttpPost("register/send-code")]
+    public async Task<IActionResult> SendRegistrationCode([FromBody] SendCodeDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Email))
+            return BadRequest(new { message = "Email é obrigatório" });
+
+        if (string.IsNullOrWhiteSpace(dto.Name))
+            return BadRequest(new { message = "Nome é obrigatório" });
+
+        var existingUser = await _userRepository.GetByEmailAsync(dto.Email);
+        if (existingUser != null)
+            return BadRequest(new { message = "Email já cadastrado" });
+
+        await _emailVerificationRepository.DeleteByEmailAsync(dto.Email);
+        
+        var code = GenerateVerificationCode();
+        var verification = new EmailVerification(
+            dto.Email, 
+            code, 
+            DateTime.UtcNow.AddMinutes(15), 
+            "registration"
+        );
+        await _emailVerificationRepository.AddAsync(verification);
+
+        try
+        {
+            await _emailService.SendVerificationCodeAsync(dto.Email, dto.Name, code);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Erro ao enviar email: {ex.Message}" });
+        }
+
+        return Ok(new { 
+            message = "Código de verificação enviado para o email",
+            email = dto.Email 
+        });
+    }
+
+    [HttpPost("register")]
+    public async Task<IActionResult> Register([FromBody] RegisterDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Email))
+            return BadRequest(new { message = "Email é obrigatório" });
+        
+        if (string.IsNullOrWhiteSpace(dto.Password) || dto.Password.Length < 6)
+            return BadRequest(new { message = "Senha deve ter no mínimo 6 caracteres" });
+
+        if (string.IsNullOrWhiteSpace(dto.Name))
+            return BadRequest(new { message = "Nome é obrigatório" });
+
+        if (string.IsNullOrWhiteSpace(dto.VerificationCode))
+            return BadRequest(new { message = "Código de verificação é obrigatório" });
+
+        var verification = await _emailVerificationRepository.GetValidCodeAsync(
+            dto.Email, 
+            dto.VerificationCode, 
+            "registration"
+        );
+
+        if (verification == null)
+            return BadRequest(new { message = "Código inválido ou expirado" });
+
+        var existingUser = await _userRepository.GetByEmailAsync(dto.Email);
+        if (existingUser != null)
+            return BadRequest(new { message = "Email já cadastrado" });
+
+        verification.MarkAsUsed();
+        await _emailVerificationRepository.UpdateAsync(verification);
+
+        var defaultRole = await _context.Roles.FirstOrDefaultAsync(r => r.Type == PA.Domain.Enums.RoleType.Usuario);
+        if (defaultRole == null)
+            return StatusCode(500, new { message = "Erro ao obter role padrão" });
+
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+        var user = new PA.Domain.Entities.User(dto.Name, new Email(dto.Email), passwordHash, defaultRole.Id);
+        user.VerifyEmail();
+
+        user = await _userRepository.AddAsync(user);
+
+        await _emailVerificationRepository.DeleteByEmailAsync(dto.Email);
+
+        try
+        {
+            await _emailService.SendWelcomeEmailAsync(dto.Email, dto.Name);
+        }
+        catch { }
+
+        var token = _jwtTokenService.GenerateToken(user);
+
+        return Ok(new
+        {
+            token,
+            user = new
+            {
+                user.Id,
+                user.Name,
+                Email = user.Email.Value,
+                Role = user.Role.Name
+            }
+        });
+    }
+
+    [HttpPost("resend-verification-code")]
+    public async Task<IActionResult> ResendVerificationCode([FromBody] ResendCodeDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Email))
+            return BadRequest(new { message = "Email é obrigatório" });
+
+        var latest = await _emailVerificationRepository.GetLatestByEmailAsync(dto.Email, "registration");
+        if (latest != null && latest.CreatedAt > DateTime.UtcNow.AddMinutes(-2))
+        {
+            return BadRequest(new { 
+                message = "Aguarde alguns minutos antes de solicitar um novo código" 
+            });
+        }
+
+        await _emailVerificationRepository.DeleteByEmailAsync(dto.Email);
+        
+        var code = GenerateVerificationCode();
+        var verification = new EmailVerification(
+            dto.Email, 
+            code, 
+            DateTime.UtcNow.AddMinutes(15), 
+            "registration"
+        );
+        await _emailVerificationRepository.AddAsync(verification);
+
+        try
+        {
+            await _emailService.SendVerificationCodeAsync(dto.Email, "Usuário", code);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Erro ao enviar email: {ex.Message}" });
+        }
+
+        return Ok(new { message = "Novo código enviado" });
+    }
+
+    private static string GenerateVerificationCode()
+    {
+        return RandomNumberGenerator.GetInt32(100000, 999999).ToString();
+    }
+}
+
+public class RegisterDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    public string VerificationCode { get; set; } = string.Empty;
+}
+
+public class SendCodeDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
 }
 
 public class LoginDto
@@ -224,4 +467,23 @@ public class GoogleCompleteRegistrationDto
     public string RegistrationToken { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
+    public string VerificationCode { get; set; } = string.Empty;
+}
+
+public class VerifyEmailDto
+{
+    public string Email { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+}
+
+public class CompleteRegistrationDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+}
+
+public class ResendCodeDto
+{
+    public string Email { get; set; } = string.Empty;
 }

@@ -34,6 +34,8 @@ public class GrupoDto
     public Guid PastoralId { get; set; }
     public string? PastoralName { get; set; }
     public string? PastoralSigla { get; set; }
+    public Guid? IgrejaId { get; set; }
+    public string? IgrejaNome { get; set; }
     public string PrimaryColor { get; set; } = string.Empty;
     public string SecondaryColor { get; set; } = string.Empty;
     public string? LogoUrl { get; set; }
@@ -120,6 +122,7 @@ public record CreateGrupoDto(
     string Sigla,
     string Description,
     Guid PastoralId,
+    Guid? IgrejaId,
     string PrimaryColor,
     string SecondaryColor,
     string? LogoUrl,

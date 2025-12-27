@@ -5,6 +5,7 @@ using PA.Application.DTOs;
 using PA.Application.Interfaces.Services;
 using PA.Application.Interfaces.Repositories;
 using PA.Domain.Entities;
+using PA.Domain.Enums;
 using System.Security.Claims;
 
 namespace PA.API.Controllers.Evento;
@@ -24,17 +25,21 @@ public class EventosController : ControllerBase
         _eventoRepository = eventoRepository;
     }
 
+    private Guid GetUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var eventos = await _eventoService.GetUpcomingAsync();
+        var userId = GetUserId();
+        var eventos = await _eventoService.GetUpcomingAsync(userId);
         return Ok(eventos);
     }
 
     [HttpGet("upcoming")]
     public async Task<IActionResult> GetUpcoming()
     {
-        var eventos = await _eventoService.GetUpcomingAsync();
+        var userId = GetUserId();
+        var eventos = await _eventoService.GetUpcomingAsync(userId);
         return Ok(eventos);
     }
 
@@ -43,6 +48,22 @@ public class EventosController : ControllerBase
     {
         var eventos = await _eventoService.GetPastAsync();
         return Ok(eventos);
+    }
+
+    [HttpGet("type/{type}")]
+    public async Task<IActionResult> GetByType(EventoType type)
+    {
+        var eventos = await _eventoService.GetByTypeAsync(type);
+        return Ok(eventos);
+    }
+
+    [HttpGet("types")]
+    public IActionResult GetEventoTypes()
+    {
+        var types = Enum.GetValues<EventoType>()
+            .Select(t => new { Value = (int)t, Name = t.ToString() })
+            .ToList();
+        return Ok(types);
     }
 
     [HttpGet("grupo/{grupoId:guid}")]
@@ -62,7 +83,8 @@ public class EventosController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var evento = await _eventoService.GetByIdAsync(id);
+        var userId = GetUserId();
+        var evento = await _eventoService.GetByIdAsync(id, userId);
         
         if (evento == null)
             return NotFound();
@@ -71,17 +93,17 @@ public class EventosController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "CoordenadorGrupo,CoordenadorGeral,Admin")]
+    [Authorize(Roles = "Coordenador de Grupo,Coordenador Geral,Administrador")]
     public async Task<IActionResult> Create([FromBody] CreateEventoDto dto)
     {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var userId = GetUserId();
         var evento = await _eventoService.CreateAsync(dto, userId);
         
         return CreatedAtAction(nameof(GetById), new { id = evento.Id }, evento);
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "CoordenadorGrupo,CoordenadorGeral,Admin")]
+    [Authorize(Roles = "Coordenador de Grupo,Coordenador Geral,Administrador")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateEventoDto dto)
     {
         try
@@ -96,17 +118,65 @@ public class EventosController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "CoordenadorGeral,Admin")]
+    [Authorize(Roles = "Coordenador Geral,Administrador")]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _eventoService.DeleteAsync(id);
         return NoContent();
     }
 
+    [HttpPost("{id:guid}/participar")]
+    public async Task<IActionResult> Participar(Guid id)
+    {
+        try
+        {
+            var userId = GetUserId();
+            var resultado = await _eventoService.ParticiparAsync(id, userId);
+            return Ok(new { participando = resultado });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpDelete("{id:guid}/participar")]
+    public async Task<IActionResult> CancelarParticipacao(Guid id)
+    {
+        try
+        {
+            var userId = GetUserId();
+            var resultado = await _eventoService.CancelarParticipacaoAsync(id, userId);
+            return Ok(new { participando = !resultado });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
+    [HttpGet("{id:guid}/participantes")]
+    public async Task<IActionResult> GetParticipantes(Guid id)
+    {
+        try
+        {
+            var participantes = await _eventoService.GetParticipantesAsync(id);
+            return Ok(participantes);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
     [HttpPost("{id:guid}/save")]
     public async Task<IActionResult> SaveEvento(Guid id)
     {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var userId = GetUserId();
         var evento = await _eventoRepository.GetByIdAsync(id);
         
         if (evento == null)
@@ -130,7 +200,7 @@ public class EventosController : ControllerBase
     [HttpGet("saved")]
     public async Task<IActionResult> GetSavedEventos()
     {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var userId = GetUserId();
         var savedEventos = await _eventoRepository.GetSavedEventosByUserAsync(userId);
         return Ok(savedEventos);
     }

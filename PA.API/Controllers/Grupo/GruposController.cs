@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PA.Application.DTOs;
 using PA.Application.Interfaces.Repositories;
+using PA.Application.Interfaces.Services;
 using PA.Domain.Entities;
 using GrupoEntity = PA.Domain.Entities.Grupo;
 using PA.Domain.ValueObjects;
@@ -16,12 +17,14 @@ public class GruposController : ControllerBase
     private readonly IGrupoRepository _grupoRepository;
     private readonly IPastoralRepository _pastoralRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IGrupoService _grupoService;
 
-    public GruposController(IGrupoRepository grupoRepository, IPastoralRepository pastoralRepository, IUserRepository userRepository)
+    public GruposController(IGrupoRepository grupoRepository, IPastoralRepository pastoralRepository, IUserRepository userRepository, IGrupoService grupoService)
     {
         _grupoRepository = grupoRepository;
         _pastoralRepository = pastoralRepository;
         _userRepository = userRepository;
+        _grupoService = grupoService;
     }
 
     [HttpGet]
@@ -100,7 +103,7 @@ public class GruposController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Administrador")]
     [ServiceFilter(typeof(AuthorizationFilter))]
     public async Task<IActionResult> Create([FromBody] CreateGrupoDto dto)
     {
@@ -130,7 +133,7 @@ public class GruposController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Administrador")]
     [ServiceFilter(typeof(AuthorizationFilter))]
     public async Task<IActionResult> Update(Guid id, [FromBody] CreateGrupoDto dto)
     {
@@ -146,7 +149,7 @@ public class GruposController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Administrador")]
     [ServiceFilter(typeof(AuthorizationFilter))]
     public async Task<IActionResult> Delete(Guid id)
     {
@@ -163,25 +166,30 @@ public class GruposController : ControllerBase
     }
 
     [HttpPost("{grupoId}/membros/{userId}")]
-    [Authorize(Roles = "Admin,CoordenadorGeral,CoordenadorGrupo")]
+    [Authorize(Roles = "Administrador,Coordenador Geral,Coordenador de Grupo")]
     public async Task<IActionResult> AddMembro(Guid grupoId, Guid userId)
     {
-        var user = await _userRepository.GetByIdAsync(userId);
-        if (user == null)
-            return NotFound("Usuário não encontrado");
-
-        var grupo = await _grupoRepository.GetByIdAsync(grupoId);
-        if (grupo == null)
-            return NotFound("Grupo não encontrado");
-
-        user.AdicionarAoGrupo(grupoId, grupo);
-        await _userRepository.UpdateAsync(user);
-
-        return NoContent();
+        try
+        {
+            await _grupoService.AddMemberAsync(grupoId, userId);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpDelete("{grupoId}/membros/{userId}")]
-    [Authorize(Roles = "Admin,CoordenadorGeral,CoordenadorGrupo")]
+    [Authorize(Roles = "Administrador,Coordenador Geral,Coordenador de Grupo")]
     public async Task<IActionResult> RemoveMembro(Guid grupoId, Guid userId)
     {
         var user = await _userRepository.GetByIdAsync(userId);
@@ -192,6 +200,63 @@ public class GruposController : ControllerBase
         await _userRepository.UpdateAsync(user);
 
         return NoContent();
+    }
+
+    [HttpPost("{grupoId}/entrar")]
+    [Authorize]
+    public async Task<IActionResult> EntrarNoGrupo(Guid grupoId)
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            return Unauthorized();
+
+        try
+        {
+            var grupo = await _grupoRepository.GetByIdAsync(grupoId);
+            if (grupo == null)
+                return NotFound(new { message = "Grupo não encontrado" });
+
+            if (!grupo.IsActive)
+                return BadRequest(new { message = "Este grupo está inativo" });
+
+            await _grupoService.AddMemberAsync(grupoId, userId);
+            
+            return Ok(new { message = "Você entrou no grupo com sucesso!" });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("{grupoId}/sair")]
+    [Authorize]
+    public async Task<IActionResult> SairDoGrupo(Guid grupoId)
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            return Unauthorized();
+
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null)
+            return NotFound("Usuário não encontrado");
+
+        var userGrupo = user.UserGrupos.FirstOrDefault(ug => ug.GrupoId == grupoId && ug.IsAtivo);
+        if (userGrupo == null)
+            return BadRequest(new { message = "Você não faz parte deste grupo" });
+
+        user.RemoverDoGrupo(grupoId);
+        await _userRepository.UpdateAsync(user);
+
+        return Ok(new { message = "Você saiu do grupo com sucesso!" });
     }
 
     [HttpPost("{grupoId}/silenciar-notificacoes")]
@@ -239,7 +304,7 @@ public class GruposController : ControllerBase
     }
 
     [HttpPatch("{id}/desativar")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Administrador")]
     [ServiceFilter(typeof(AuthorizationFilter))]
     public async Task<IActionResult> Desativar(Guid id)
     {
@@ -253,7 +318,7 @@ public class GruposController : ControllerBase
     }
 
     [HttpPatch("{id}/ativar")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Administrador")]
     [ServiceFilter(typeof(AuthorizationFilter))]
     public async Task<IActionResult> Ativar(Guid id)
     {
